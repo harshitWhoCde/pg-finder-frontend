@@ -2,7 +2,7 @@ import React from 'react';
 // 1. ADD THIS LINE BELOW 👇
 import { Home, Facebook, Instagram, Twitter, Linkedin, MapPin, Phone, Mail } from 'lucide-react'; 
 
-const Footer = () => {
+export default function Footer () {
   return (
     <footer id="contact" className="bg-gray-900 text-gray-300 scroll-mt-20">
       <div className="container mx-auto px-4 py-12 lg:py-16">
@@ -76,5 +76,3 @@ const Footer = () => {
     </footer>
   );
 };
-
-export default Footer;
