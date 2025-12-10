@@ -1,10 +1,11 @@
 import React from 'react'
-import { Navbar } from '../public/components/Navbar.jsx'
-import HeroSection from '../public/components/HeroSection.jsx'
-import PopularAreas from '../public/components/PopularAreas.jsx'
-import StudentReviews from '../public/components/StudentReviews.jsx'
-import WhyPlatform from '../public/components/WhyPlatform.jsx'
-import Footer from '../public/components/Footer.jsx'
+import { Navbar } from './old_components/Navbar.jsx'
+import HeroSection from './old_components/HeroSection.jsx'
+import PopularAreas from './old_components/PopularAreas.jsx'
+import StudentReviews from './old_components/StudentReviews.jsx'
+import WhyPlatform from './old_components/WhyPlatform.jsx'
+import Footer from './old_components/Footer.jsx'
+import HomePage from './pages/HomePage.jsx'
 
 const App = () => {
   return (
@@ -14,7 +15,9 @@ const App = () => {
       <PopularAreas/>
       <StudentReviews/>
       <WhyPlatform/>
-      <Footer/>
+      <Footer/> 
+      
+      {/*<HomePage/>*/}
     </div>
   )
 }
