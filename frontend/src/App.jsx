@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Navbar } from './old_components/Navbar.jsx'
 import HeroSection from './old_components/HeroSection.jsx'
 import PopularAreas from './old_components/PopularAreas.jsx'
