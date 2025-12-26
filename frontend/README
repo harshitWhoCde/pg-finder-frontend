@@ -1,0 +1,51 @@
+# PG Finder - Frontend
+
+This is the frontend for the PG Finder application, designed specifically for TIMSCDR students to find verified PGs and for owners to list their properties.
+
+## 🚀 Features Built
+
+### 1. User Interface (UI)
+* **Modern Design:** Clean and responsive interface built with React and Tailwind CSS.
+* **Role Selection:** A "Who are you?" screen that lets users choose between **Student** and **Property Owner**.
+* **Smart Navigation:**
+    * **Login:** Takes users to a login form.
+    * **Register:** Skips the login screen and takes users directly to the registration form.
+
+### 2. Registration Flows
+* **Student Registration:**
+    * 3-Step Form: Basic Info, College Verification (ID Upload), and Preferences (Budget, Room Type).
+* **Owner Registration:**
+    * 3-Step Form: Contact Info, Property Details (Address, Distance), and Verification (Ownership Proof).
+* **Success Screen:** A confirmation screen with confetti animation after successful signup.
+
+### 3. Reusable UI Components
+We created a set of reusable components in `src/components/ui/` for consistency:
+* Buttons, Inputs, Labels, Textareas, and Select menus.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework:** React (Vite)
+* **Styling:** Tailwind CSS
+* **Icons:** Lucide React
+* **HTTP Client:** Axios (for connecting to the backend)
+* **Animations:** Canvas Confetti
+
+---
+
+## 📂 Folder Structure
+
+```text
+src/
+├── components/
+│   ├── auth/              # Registration & Login forms
+│   │   ├── OwnerRegistration.jsx
+│   │   ├── StudentRegistration.jsx
+│   │   └── SuccessScreen.jsx
+│   ├── ui/                # Reusable UI elements (Button, Input, etc.)
+│   └── Navbar.jsx         # Main navigation bar
+├── pages/
+│   └── HomePage.jsx       # Landing page
+├── App.jsx                # Main routing and logic
+└── main.jsx               # Entry point

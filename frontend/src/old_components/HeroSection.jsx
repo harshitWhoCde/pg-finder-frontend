@@ -92,7 +92,7 @@ const SelectContent = ({ children, className }) => {
   const { open } = useContext(SelectContext);
   if (!open) return null;
   return (
-    <div className={cn("absolute z-50 min-w-[8rem] overflow-hidden rounded-xl border border-gray-100 bg-white text-gray-950 shadow-xl mt-2 w-full", className)}>
+    <div className={cn("absolute z-50 min-w-32 overflow-hidden rounded-xl border border-gray-100 bg-white text-gray-950 shadow-xl mt-2 w-full", className)}>
       <div className="p-1">{children}</div>
     </div>
   );
@@ -132,7 +132,7 @@ export default function HeroSection() {
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-5xl font-bold text-gray-900 leading-[1.1] tracking-tight">
                 Find PGs Near TIMSCDR<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-purple-600">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-purple-600">
                   Easily
                 </span>
               </h1>
@@ -183,7 +183,7 @@ export default function HeroSection() {
                 </div>
               </div>
 
-              <Button className="w-full h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-lg font-semibold rounded-2xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all duration-300 transform hover:-translate-y-0.5">
+              <Button className="w-full h-14 bg-linear-to-r from-blue-600 to-purple-600 text-lg font-semibold rounded-2xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all duration-300 transform hover:-translate-y-0.5">
                 <Search className="w-5 h-5 mr-2" /> Search PGs
               </Button>
             </div>
@@ -212,17 +212,17 @@ export default function HeroSection() {
 
           {/* Right Image */}
           <div className="relative pt-8 lg:pt-0 hidden md:block">
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-purple-100 rounded-[3rem] transform rotate-3 scale-95 opacity-50 -z-10"></div>
+            <div className="absolute inset-0 bg-linear-to-tr from-blue-100 to-purple-100 rounded-[3rem] transform rotate-3 scale-95 opacity-50 -z-10"></div>
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1080"
               alt="TIMSCDR Campus"
-              className="relative rounded-[2rem] shadow-2xl w-full h-[650px] object-cover border-8 border-white"
+              className="relative rounded-4xl shadow-2xl w-full h-[650px] object-cover border-8 border-white"
             />
             
             {/* Floating Cards */}
             <div className="absolute top-12 -right-8 bg-white rounded-2xl shadow-xl p-4 z-20 max-w-[200px]">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
+                <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
                   <MapPin className="w-6 h-6" />
                 </div>
                 <div>
