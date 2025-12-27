@@ -1,24 +1,16 @@
-
-
-import { Navbar } from './old_components/Navbar.jsx'
-import HeroSection from './old_components/HeroSection.jsx'
-import PopularAreas from './old_components/PopularAreas.jsx'
-import StudentReviews from './old_components/StudentReviews.jsx'
-import WhyPlatform from './old_components/WhyPlatform.jsx'
-import Footer from './old_components/Footer.jsx'
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, Building2, ArrowRight } from 'lucide-react';
 
 // --- Imports ---
-import AuthForm from './components/AuthForm'; 
-import HomePage from './pages/HomePage';
+import AuthForm from './components/auth/AuthForm'; 
 import { StudentRegistration } from './components/auth/StudentRegistration';
 import { OwnerRegistration } from './components/auth/OwnerRegistration';
 import { SuccessScreen } from './components/auth/SuccessScreen';
+import StudentDashboard from './components/dashboard/StudentDashboard'; // Import Dashboard
+// import OwnerDashboard from './components/dashboard/OwnerDashboard'; // (Placeholder for later)
+import HomePage from './pages/HomePage'; // Ensure this path is correct
 
 // --- RoleSelection Component ---
-// We add 'mode' prop to change text dynamically ("Login as..." vs "Join as...")
 const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -72,10 +64,22 @@ const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
 
 const App = () => {
   const [view, setView] = useState('home');
-  const [authMode, setAuthMode] = useState('login'); // New state: 'login' or 'register'
-  const [userData, setUserData] = useState(null);
+  const [authMode, setAuthMode] = useState('login'); 
+  const [user, setUser] = useState(null); // Tracks logged-in user
 
-  // 1. Handle Navigation from Navbar
+  // Check for existing session on load
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      // Automatically redirect to dashboard if logged in
+      if (parsedUser.role === 'student') setView('student-dashboard');
+      if (parsedUser.role === 'owner') setView('owner-dashboard');
+    }
+  }, []);
+
+  // 1. Navigation Handlers
   const handleNavLogin = () => {
     setAuthMode('login');
     setView('selection');
@@ -86,27 +90,42 @@ const App = () => {
     setView('selection');
   };
 
-  // 2. Handle Role Selection Logic (The Magic Part)
   const handleRoleSelect = (role) => {
     if (authMode === 'login') {
-      // If they wanted to login, send them to login forms
       setView(`${role}-login`);
     } else {
-      // If they wanted to register, send them DIRECTLY to registration forms
       setView(`${role}-register`);
     }
   };
 
-  // 3. Handle Completion
+  // 2. Auth Handlers
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    if (userData.role === 'student') {
+      setView('student-dashboard');
+    } else if (userData.role === 'owner') {
+      setView('owner-dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setView('home');
+  };
+
   const handleRegistrationComplete = (data, type) => {
-    console.log("Registration Data:", data);
-    setUserData({ name: data.name, type: type });
+    // For now, we just show success screen. 
+    // In a real app, you might auto-login or ask them to verify email.
+    // We construct a temporary user object for the success screen
+    setUser({ name: data.name, role: type }); 
     setView('success');
   };
 
   return (
     <div>
-      {/* Pass BOTH handlers to HomePage */}
+      {/* Home Page */}
       {view === 'home' && (
         <HomePage 
           onLoginClick={handleNavLogin} 
@@ -114,6 +133,7 @@ const App = () => {
         />
       )}
 
+      {/* Role Selection */}
       {view === 'selection' && (
         <RoleSelection 
           mode={authMode} 
@@ -124,24 +144,57 @@ const App = () => {
       
       {/* Login Views */}
       {view === 'student-login' && (
-        <AuthForm role="student" onBack={() => setView('selection')} onRegisterClick={() => { setAuthMode('register'); setView('student-register'); }} />
+        <AuthForm 
+          role="student" 
+          onBack={() => setView('selection')} 
+          onLoginSuccess={handleLoginSuccess} // ✅ Connected!
+        />
       )}
       {view === 'owner-login' && (
-        <AuthForm role="owner" onBack={() => setView('selection')} onRegisterClick={() => { setAuthMode('register'); setView('owner-register'); }} />
+        <AuthForm 
+          role="owner" 
+          onBack={() => setView('selection')} 
+          onLoginSuccess={handleLoginSuccess} // ✅ Connected!
+        />
       )}
 
       {/* Register Views */}
       {view === 'student-register' && (
-        <StudentRegistration onBack={() => setView('selection')} onComplete={(data) => handleRegistrationComplete(data, 'student')} />
+        <StudentRegistration 
+          onBack={() => setView('selection')} 
+          onComplete={(data) => handleRegistrationComplete(data, 'student')} 
+        />
       )}
       {view === 'owner-register' && (
-        <OwnerRegistration onBack={() => setView('selection')} onComplete={(data) => handleRegistrationComplete(data, 'owner')} />
+        <OwnerRegistration 
+          onBack={() => setView('selection')} 
+          onComplete={(data) => handleRegistrationComplete(data, 'owner')} 
+        />
       )}
 
       {/* Success View */}
       {view === 'success' && (
-        <SuccessScreen userType={userData?.type} userName={userData?.name} onContinue={() => setView('home')} />
+        <SuccessScreen 
+          userType={user?.role} 
+          userName={user?.name} 
+          onContinue={() => setView('home')} // Or redirect to login
+        />
       )}
+
+      {/* Dashboard Views */}
+      {view === 'student-dashboard' && (
+        <StudentDashboard user={user} onLogout={handleLogout} />
+      )}
+
+      {view === 'owner-dashboard' && (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+           <h1 className="text-3xl font-bold mb-4">Owner Dashboard</h1>
+           <p className="text-gray-600 mb-6">Welcome, {user?.name}. You can manage properties here.</p>
+           <button onClick={handleLogout} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Logout</button>
+           {/* You can replace this div with <OwnerDashboard /> later */}
+        </div>
+      )}
+
     </div>
   );
 };
