@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { Button } from "../ui/button"; // Adjust path to ../../ui/button if needed
-import { Input } from "../ui/input";   // Adjust path to ../../ui/input if needed
-import { Label } from "../ui/label";   // Adjust path to ../../ui/label if needed
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"; // Adjust path
-import { Slider } from "../ui/slider"; // Ensure this file exists or remove import
-import { ArrowLeft, ArrowRight, Upload, ShieldCheck, User, Mail, Phone, Lock, School } from "lucide-react";
+import { Button } from "../ui/button"; 
+import { Input } from "../ui/input"; 
+import { Label } from "../ui/label"; 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"; 
+import { ArrowLeft, ArrowRight, Upload, ShieldCheck, User, Mail, Phone, Lock, School, Loader2 } from "lucide-react"; // Added Loader2
 import axios from "axios";
-// NOTICE THE 'export' KEYWORD HERE 👇
+
 export function StudentRegistration({ onBack, onComplete }) {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false); // New Loading State
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,9 +25,59 @@ export function StudentRegistration({ onBack, onComplete }) {
   const roomTypes = ["Single", "Double", "Triple", "Shared"];
   const amenitiesList = ["WiFi", "AC", "Food Included", "Laundry", "Parking", "Security", "Power Backup", "Water Supply"];
 
+  // --- NEW: API Submission Logic ---
+  const handleRegister = async () => {
+    try {
+      setLoading(true);
+      const data = new FormData();
+
+      // 1. Append Basic Info
+      data.append("name", formData.name);
+      data.append("email", formData.email);
+      data.append("phone", formData.phone);
+      data.append("password", formData.password);
+      data.append("role", "student");
+
+      // 2. Append Student Specifics
+      data.append("college", formData.college);
+      data.append("budgetMin", formData.budgetRange[0]);
+      data.append("budgetMax", formData.budgetRange[1]);
+
+      // 3. Convert Arrays to Comma-Separated Strings (Backend expects this)
+      data.append("roomType", formData.roomType.join(","));
+      data.append("amenities", formData.amenities.join(","));
+
+      // 4. Append File (IMPORTANT: Key must be 'idProof' to match backend middleware)
+      if (formData.studentId) {
+        data.append("idProof", formData.studentId);
+      }
+
+      // 5. Send Request
+      const res = await axios.post("http://localhost:8080/api/v1/auth/register", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data.success) {
+        // Pass the created user data to the parent component
+        onComplete(res.data.user);
+      } else {
+        alert(res.data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Registration Failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNext = () => {
-    if (step < 3) setStep(step + 1);
-    else onComplete(formData);
+    if (step < 3) {
+      setStep(step + 1);
+    } else {
+      // If on last step, submit to backend
+      handleRegister();
+    }
   };
 
   const handleBack = () => {
@@ -81,9 +132,10 @@ export function StudentRegistration({ onBack, onComplete }) {
 
         {/* Form Card */}
         <div className="bg-white rounded-3xl shadow-xl p-6 lg:p-8">
+          
           {/* Step 1: Basic Info */}
           {step === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
                 <h2 className="text-2xl text-gray-900">Basic Information</h2>
                 <p className="text-gray-600">Tell us a bit about yourself</p>
@@ -150,7 +202,7 @@ export function StudentRegistration({ onBack, onComplete }) {
 
           {/* Step 2: Verification */}
           {step === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
                 <h2 className="text-2xl text-gray-900">Student Verification</h2>
                 <p className="text-gray-600">Verify your student status for safety</p>
@@ -184,11 +236,11 @@ export function StudentRegistration({ onBack, onComplete }) {
                       <SelectValue placeholder="Choose your college" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="tcet">Thakur College of Engineering and Technology (TCET)</SelectItem>
-                      <SelectItem value="kjsce">K.J. Somaiya College of Engineering</SelectItem>
-                      <SelectItem value="spit">Sardar Patel Institute of Technology</SelectItem>
-                      <SelectItem value="djsce">Dwarkadas J. Sanghvi College of Engineering</SelectItem>
-                      <SelectItem value="vjti">Veermata Jijabai Technological Institute (VJTI)</SelectItem>
+                      <SelectItem value="tcet">Thakur College of Engineering (TCET)</SelectItem>
+                      <SelectItem value="kjsce">K.J. Somaiya College</SelectItem>
+                      <SelectItem value="spit">Sardar Patel Institute (SPIT)</SelectItem>
+                      <SelectItem value="djsce">Dwarkadas J. Sanghvi (DJ)</SelectItem>
+                      <SelectItem value="vjti">VJTI Mumbai</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -198,19 +250,22 @@ export function StudentRegistration({ onBack, onComplete }) {
                   <Label htmlFor="studentId" className="flex items-center gap-2">
                     <Upload className="w-4 h-4" /> Upload Student ID Card
                   </Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer relative">
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer relative group">
                     <input
                       type="file"
                       id="studentId"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       accept="image/*,.pdf"
                       onChange={(e) => setFormData({ ...formData, studentId: e.target.files?.[0] || null })}
                     />
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                       <Upload className="w-6 h-6 text-blue-600" />
                     </div>
                     {formData.studentId ? (
-                      <p className="text-sm text-gray-900">{formData.studentId.name}</p>
+                      <div className="text-green-600 font-medium flex flex-col items-center">
+                         <ShieldCheck className="w-5 h-5 mb-1"/>
+                         <p className="text-sm truncate max-w-[200px]">{formData.studentId.name}</p>
+                      </div>
                     ) : (
                       <>
                         <p className="text-sm text-gray-900">Click to upload or drag and drop</p>
@@ -225,19 +280,19 @@ export function StudentRegistration({ onBack, onComplete }) {
 
           {/* Step 3: Preferences */}
           {step === 3 && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
                 <h2 className="text-2xl text-gray-900">Your Preferences</h2>
                 <p className="text-gray-600">Help us find the perfect PG for you</p>
               </div>
 
               <div className="space-y-6">
-                {/* Budget Range - Simplified Input since Slider UI might be missing */}
+                {/* Budget Range */}
                 <div className="space-y-4">
                   <Label>Budget Range (Monthly)</Label>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                         <Label className="text-xs text-gray-500 mb-1">Min Budget</Label>
+                         <Label className="text-xs text-gray-500 mb-1">Min Budget (₹)</Label>
                          <Input 
                             type="number" 
                             value={formData.budgetRange[0]} 
@@ -245,7 +300,7 @@ export function StudentRegistration({ onBack, onComplete }) {
                          />
                     </div>
                     <div className="flex-1">
-                         <Label className="text-xs text-gray-500 mb-1">Max Budget</Label>
+                         <Label className="text-xs text-gray-500 mb-1">Max Budget (₹)</Label>
                          <Input 
                             type="number" 
                             value={formData.budgetRange[1]} 
@@ -302,18 +357,30 @@ export function StudentRegistration({ onBack, onComplete }) {
           <div className="flex items-center gap-4 mt-8">
             <Button
               onClick={handleBack}
+              disabled={loading}
               variant="outline"
               className="flex-1 h-12 gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
+            
             <Button
               onClick={handleNext}
+              disabled={loading}
               className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 gap-2"
             >
-              {step === 3 ? 'Complete Registration' : 'Next'}
-              {step < 3 && <ArrowRight className="w-4 h-4" />}
+              {loading ? (
+                <>
+                   <Loader2 className="w-4 h-4 animate-spin" /> Processing...
+                </>
+              ) : step === 3 ? (
+                'Complete Registration'
+              ) : (
+                <>
+                   Next <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>

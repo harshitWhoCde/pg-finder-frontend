@@ -1,24 +1,17 @@
-
-
-import { Navbar } from './old_components/Navbar.jsx'
-import HeroSection from './old_components/HeroSection.jsx'
-import PopularAreas from './old_components/PopularAreas.jsx'
-import StudentReviews from './old_components/StudentReviews.jsx'
-import WhyPlatform from './old_components/WhyPlatform.jsx'
-import Footer from './old_components/Footer.jsx'
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, Building2, ArrowRight } from 'lucide-react';
 
 // --- Imports ---
-import AuthForm from './components/AuthForm'; 
-import HomePage from './pages/HomePage';
+import AuthForm from './components/auth/AuthForm'; 
 import { StudentRegistration } from './components/auth/StudentRegistration';
 import { OwnerRegistration } from './components/auth/OwnerRegistration';
 import { SuccessScreen } from './components/auth/SuccessScreen';
+import StudentDashboard from './components/dashboard/StudentDashboard'; 
+// 👇 NEW IMPORT ADDED HERE
+import OwnerDashboard from './components/dashboard/OwnerDashboard'; 
+import HomePage from './pages/HomePage'; 
 
-// --- RoleSelection Component ---
-// We add 'mode' prop to change text dynamically ("Login as..." vs "Join as...")
+// --- RoleSelection Component (No Changes) ---
 const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -69,13 +62,23 @@ const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
   );
 };
 
-
+// --- Main App Component ---
 const App = () => {
   const [view, setView] = useState('home');
-  const [authMode, setAuthMode] = useState('login'); // New state: 'login' or 'register'
-  const [userData, setUserData] = useState(null);
+  const [authMode, setAuthMode] = useState('login'); 
+  const [user, setUser] = useState(null); 
 
-  // 1. Handle Navigation from Navbar
+  // Check for existing session
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      if (parsedUser.role === 'student') setView('student-dashboard');
+      if (parsedUser.role === 'owner') setView('owner-dashboard');
+    }
+  }, []);
+
   const handleNavLogin = () => {
     setAuthMode('login');
     setView('selection');
@@ -86,51 +89,56 @@ const App = () => {
     setView('selection');
   };
 
-  // 2. Handle Role Selection Logic (The Magic Part)
   const handleRoleSelect = (role) => {
     if (authMode === 'login') {
-      // If they wanted to login, send them to login forms
       setView(`${role}-login`);
     } else {
-      // If they wanted to register, send them DIRECTLY to registration forms
       setView(`${role}-register`);
     }
   };
 
-  // 3. Handle Completion
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    if (userData.role === 'student') {
+      setView('student-dashboard');
+    } else if (userData.role === 'owner') {
+      setView('owner-dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setView('home');
+  };
+
   const handleRegistrationComplete = (data, type) => {
-    console.log("Registration Data:", data);
-    setUserData({ name: data.name, type: type });
+    setUser({ name: data.name, role: type, _id: data._id }); 
     setView('success');
   };
 
   return (
     <div>
-      {/* Pass BOTH handlers to HomePage */}
+      {/* Home */}
       {view === 'home' && (
-        <HomePage 
-          onLoginClick={handleNavLogin} 
-          onRegisterClick={handleNavRegister} 
-        />
+        <HomePage onLoginClick={handleNavLogin} onRegisterClick={handleNavRegister} />
       )}
 
+      {/* Selection */}
       {view === 'selection' && (
-        <RoleSelection 
-          mode={authMode} 
-          onSelectRole={handleRoleSelect} 
-          onBackHome={() => setView('home')}
-        />
+        <RoleSelection mode={authMode} onSelectRole={handleRoleSelect} onBackHome={() => setView('home')} />
       )}
       
-      {/* Login Views */}
+      {/* Login */}
       {view === 'student-login' && (
-        <AuthForm role="student" onBack={() => setView('selection')} onRegisterClick={() => { setAuthMode('register'); setView('student-register'); }} />
+        <AuthForm role="student" onBack={() => setView('selection')} onLoginSuccess={handleLoginSuccess} />
       )}
       {view === 'owner-login' && (
-        <AuthForm role="owner" onBack={() => setView('selection')} onRegisterClick={() => { setAuthMode('register'); setView('owner-register'); }} />
+        <AuthForm role="owner" onBack={() => setView('selection')} onLoginSuccess={handleLoginSuccess} />
       )}
 
-      {/* Register Views */}
+      {/* Register */}
       {view === 'student-register' && (
         <StudentRegistration onBack={() => setView('selection')} onComplete={(data) => handleRegistrationComplete(data, 'student')} />
       )}
@@ -138,10 +146,28 @@ const App = () => {
         <OwnerRegistration onBack={() => setView('selection')} onComplete={(data) => handleRegistrationComplete(data, 'owner')} />
       )}
 
-      {/* Success View */}
+      {/* Success */}
       {view === 'success' && (
-        <SuccessScreen userType={userData?.type} userName={userData?.name} onContinue={() => setView('home')} />
+        <SuccessScreen 
+          userType={user?.role} 
+          userName={user?.name} 
+          onContinue={() => {
+            if (user?.role === 'student') setView('student-dashboard');
+            else setView('owner-dashboard');
+          }} 
+        />
       )}
+
+      {/* Dashboards */}
+      {view === 'student-dashboard' && (
+        <StudentDashboard user={user} onLogout={handleLogout} />
+      )}
+
+      {/* 👇 THIS IS THE FIX: Render the Real Owner Dashboard */}
+      {view === 'owner-dashboard' && (
+        <OwnerDashboard user={user} onLogout={handleLogout} />
+      )}
+
     </div>
   );
 };

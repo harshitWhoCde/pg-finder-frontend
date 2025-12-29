@@ -1,13 +1,13 @@
 const express = require("express");
 const { registerController, loginController } = require("../controllers/authController");
+const upload = require("../config/multer"); // Import middleware
 
 const router = express.Router();
 
-// Routing
-// METHOD: POST || URL: /api/v1/auth/register
-router.post("/register", registerController);
+// Register Route (Now handles 'idProof' file)
+router.post("/register", upload.single("idProof"), registerController);
 
-// METHOD: POST || URL: /api/v1/auth/login
+// Login Route
 router.post("/login", loginController);
 
 module.exports = router;

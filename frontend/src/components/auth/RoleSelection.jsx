@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { GraduationCap, Building2, ArrowRight, ArrowLeft, Mail, Lock, User, CheckCircle2 } from 'lucide-react';
+import axios from 'axios'; // Import Axios
+import { GraduationCap, Building2, ArrowRight, ArrowLeft, Mail, Lock, CheckCircle2, Loader2 } from 'lucide-react'; // Added Loader2
 
 // --- Shared Components ---
 
-// Simple reusable Button component to replace the imported UI component
 const Button = ({ children, className = "", variant = "primary", ...props }) => {
   const baseStyles = "w-full py-3 px-4 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 active:scale-95";
   const variants = {
@@ -19,8 +19,8 @@ const Button = ({ children, className = "", variant = "primary", ...props }) => 
   );
 };
 
-// Input Field Component
-const InputField = ({ icon: Icon, type, placeholder }) => (
+// UPDATED: Now accepts value and onChange so we can type in it
+const InputField = ({ icon: Icon, type, placeholder, value, onChange }) => (
   <div className="relative group">
     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
       <Icon className="w-5 h-5" />
@@ -28,6 +28,8 @@ const InputField = ({ icon: Icon, type, placeholder }) => (
     <input 
       type={type} 
       placeholder={placeholder}
+      value={value}         // Added
+      onChange={onChange}   // Added
       className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
     />
   </div>
@@ -37,63 +39,41 @@ const InputField = ({ icon: Icon, type, placeholder }) => (
 
 const RoleSelection = ({ onSelectRole, onSignInClick }) => {
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl space-y-8 animate-in fade-in zoom-in duration-500">
-        {/* Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-gray-600">Welcome to UniStays</span>
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight">
-            Who are <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600">you?</span>
+            Who are <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">you?</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-lg mx-auto">
             Choose your role to get started with your personalized experience
           </p>
         </div>
 
-        {/* Role Cards */}
         <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
           {/* Student Card */}
           <button
             onClick={() => onSelectRole('student')}
             className="group relative bg-white rounded-3xl p-8 lg:p-10 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 text-left border-2 border-transparent hover:border-blue-500"
           >
-            {/* Gradient Background on Hover */}
-            <div className="absolute inset-0 bg-linear-to-br from-blue-50 to-purple-50 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <div className="relative space-y-6">
-              {/* Icon */}
-              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-lg shadow-blue-500/30">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-lg shadow-blue-500/30">
                 <GraduationCap className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
               </div>
-
-              {/* Content */}
               <div className="space-y-3">
                 <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors">I am a Student</h2>
-                <p className="text-gray-600">
-                  Find the perfect PG near your college campus with verified reviews.
-                </p>
+                <p className="text-gray-600">Find the perfect PG near your college campus with verified reviews.</p>
               </div>
-
-              {/* Features */}
               <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                  Browse verified PG listings
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                  Filter by budget and location
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                  Connect directly with owners
-                </li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Browse verified PG listings</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Filter by budget and location</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Connect directly with owners</li>
               </ul>
-
-              {/* Arrow Icon */}
               <div className="flex items-center gap-2 text-blue-600 font-semibold pt-2">
                 <span>Get started</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
@@ -106,40 +86,20 @@ const RoleSelection = ({ onSelectRole, onSignInClick }) => {
             onClick={() => onSelectRole('owner')}
             className="group relative bg-white rounded-3xl p-8 lg:p-10 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 text-left border-2 border-transparent hover:border-purple-500"
           >
-            {/* Gradient Background on Hover */}
-            <div className="absolute inset-0 bg-linear-to-br from-purple-50 to-blue-50 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <div className="relative space-y-6">
-              {/* Icon */}
-              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-linear-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-lg shadow-purple-500/30">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-lg shadow-purple-500/30">
                 <Building2 className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
               </div>
-
-              {/* Content */}
               <div className="space-y-3">
                 <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 group-hover:text-purple-700 transition-colors">I am an Owner</h2>
-                <p className="text-gray-600">
-                  List your property and find verified students quickly and easily.
-                </p>
+                <p className="text-gray-600">List your property and find verified students quickly and easily.</p>
               </div>
-
-              {/* Features */}
               <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-purple-500" />
-                  Reach thousands of students
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-purple-500" />
-                  Manage listings dashboard
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-purple-500" />
-                  Get verified property badge
-                </li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Reach thousands of students</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Manage listings dashboard</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Get verified property badge</li>
               </ul>
-
-              {/* Arrow Icon */}
               <div className="flex items-center gap-2 text-purple-600 font-semibold pt-2">
                 <span>List Property</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
@@ -147,8 +107,6 @@ const RoleSelection = ({ onSelectRole, onSignInClick }) => {
             </div>
           </button>
         </div>
-
-        {/* Footer Note */}
         <p className="text-center text-sm text-gray-500">
           Already have an account? <button onClick={onSignInClick} className="text-blue-600 font-semibold hover:underline">Sign in</button>
         </p>
@@ -157,10 +115,49 @@ const RoleSelection = ({ onSelectRole, onSignInClick }) => {
   );
 };
 
-const AuthForm = ({ role, onBack }) => {
+// UPDATED: Now includes logic to call Backend API
+const AuthForm = ({ role, onBack, onLoginSuccess }) => {
   const isStudent = role === 'student';
   const themeColor = isStudent ? 'blue' : 'purple';
   
+  // 1. Add State for Inputs
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 2. Handle Login Submission
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Stop page reload
+    
+    try {
+      setLoading(true);
+      
+      // Call your Backend
+      const res = await axios.post('http://localhost:8080/api/v1/auth/login', {
+        email: email,
+        password: password
+      });
+
+      if (res.data.success) {
+        // Success! Save token
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        
+        // Notify parent component
+        onLoginSuccess(res.data.user);
+        alert(`Welcome back, ${res.data.user.name}!`);
+      } else {
+        alert(res.data.message);
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Login Failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl grid md:grid-cols-2 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-500">
@@ -184,10 +181,22 @@ const AuthForm = ({ role, onBack }) => {
             </p>
           </div>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <InputField icon={Mail} type="email" placeholder="Email Address" />
-              <InputField icon={Lock} type="password" placeholder="Password" />
+              <InputField 
+                icon={Mail} 
+                type="email" 
+                placeholder="Email Address" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <InputField 
+                icon={Lock} 
+                type="password" 
+                placeholder="Password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <div className="flex items-center justify-between text-sm">
@@ -198,8 +207,12 @@ const AuthForm = ({ role, onBack }) => {
               <a href="#" className={`font-medium hover:underline text-${themeColor}-600`}>Forgot password?</a>
             </div>
 
-            <Button>
-              Sign in
+            <Button disabled={loading}>
+              {loading ? (
+                <>
+                   <Loader2 className="w-4 h-4 animate-spin" /> Signing In...
+                </>
+              ) : "Sign in"}
             </Button>
 
             <div className="relative">
@@ -223,7 +236,7 @@ const AuthForm = ({ role, onBack }) => {
         </div>
 
         {/* Right Side - Decorator */}
-        <div className={`hidden md:flex flex-col justify-between p-12 text-white bg-linear-to-br ${isStudent ? 'from-blue-600 to-indigo-700' : 'from-purple-600 to-pink-600'}`}>
+        <div className={`hidden md:flex flex-col justify-between p-12 text-white bg-gradient-to-br ${isStudent ? 'from-blue-600 to-indigo-700' : 'from-purple-600 to-pink-600'}`}>
           <div className="space-y-4">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-lg rounded-xl flex items-center justify-center">
               {isStudent ? <GraduationCap className="w-6 h-6 text-white" /> : <Building2 className="w-6 h-6 text-white" />}
@@ -276,21 +289,35 @@ export default function App() {
     setView('selection');
   };
 
+  const handleLoginSuccess = (userData) => {
+    console.log("Logged in user:", userData);
+    // Here you will eventually navigate to the Dashboard
+    // For now, we stay on the screen but you see the alert
+  };
+
   return (
     <div className="antialiased text-gray-900 bg-gray-50">
       {view === 'selection' && (
         <RoleSelection 
           onSelectRole={handleRoleSelect} 
-          onSignInClick={() => setView('student-login')} // Default to student login for generic sign in
+          onSignInClick={() => setView('student-login')} 
         />
       )}
       
       {view === 'student-login' && (
-        <AuthForm role="student" onBack={handleBack} />
+        <AuthForm 
+          role="student" 
+          onBack={handleBack} 
+          onLoginSuccess={handleLoginSuccess} // Pass this prop
+        />
       )}
       
       {view === 'owner-login' && (
-        <AuthForm role="owner" onBack={handleBack} />
+        <AuthForm 
+          role="owner" 
+          onBack={handleBack} 
+          onLoginSuccess={handleLoginSuccess} // Pass this prop
+        />
       )}
     </div>
   );

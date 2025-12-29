@@ -1,8 +1,10 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path"); // 1. NEW: Required for file paths
 const connectDB = require("./config/db");
 const authRoutes = require("./Routes/authRoutes");
+const propertyRoutes = require("./Routes/propertyRoutes"); // 2. NEW: Import Property Routes
 
 // Configure env
 dotenv.config();
@@ -13,11 +15,16 @@ connectDB();
 const app = express();
 
 // Middlewares
-app.use(cors()); // Fixes the "CORS error" when frontend calls backend
-app.use(express.json()); // Allows app to understand JSON data
+app.use(cors()); 
+app.use(express.json()); 
+
+// 3. NEW: Make the "uploads" folder public
+// This allows the frontend to access uploaded images via URL
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/property", propertyRoutes); // 4. NEW: Enable Property Routes
 
 // Test API
 app.get("/", (req, res) => {

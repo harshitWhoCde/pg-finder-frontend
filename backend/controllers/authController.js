@@ -1,59 +1,129 @@
-import { User } from "../models/User.js";
-import bcrypt from "bcryptjs";
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-export const register = async (req, res) => {
+// --- REGISTER CONTROLLER ---
+const registerController = async (req, res) => {
   try {
-    // 1. Destructure ALL possible fields from the frontend
-    const { 
-      name, email, password, phone, role, 
-      college, budgetRange, roomType, amenities, // Student fields
-      propertyName, address, propertyType, totalBeds // Owner fields
-    } = req.body;
+    // 1. Check if file was uploaded
+    const idProofPath = req.file ? req.file.path : null;
 
-    // 2. Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists", success: false });
+    // 2. Destructure basic fields
+    const { name, email, phone, password, role } = req.body;
+
+    // 3. Validation
+    if (!name || !email || !password || !phone) {
+      return res.status(400).send({ message: "All basic fields are required" });
     }
 
-    // 3. Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(200).send({ success: false, message: "Already Registered" });
+    }
 
-    // 4. Create User (Pass relevant fields based on role)
-    const newUser = new User({
+    // 4. Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 5. Build User Object
+    const userData = {
       name,
       email,
       phone,
       password: hashedPassword,
       role,
-      // We can pass all; Mongoose will ignore ones not in schema if strictly defined, 
-      // but since we added them to schema, they will be saved.
-      college,
-      budgetRange,
-      preferredRoomType: roomType,     // Mapping frontend name to DB name
-      preferredAmenities: amenities,   // Mapping frontend name to DB name
-      propertyName,
-      propertyAddress: address,
-      propertyType,
-      totalBeds,
-      propertyAmenities: amenities     // Owner amenities
-    });
+      idProofUrl: idProofPath, // Save file path
+    };
 
-    await newUser.save();
+    // 6. Handle Role-Specific Data
+    if (role === 'student') {
+      userData.studentProfile = {
+        college: req.body.college,
+        budgetMin: req.body.budgetMin, 
+        budgetMax: req.body.budgetMax,
+        // Safe parsing for arrays
+        roomType: req.body.roomType ? (typeof req.body.roomType === 'string' ? req.body.roomType.split(',') : req.body.roomType) : [],
+        amenities: req.body.amenities ? (typeof req.body.amenities === 'string' ? req.body.amenities.split(',') : req.body.amenities) : [],
+      };
+    } 
+    else if (role === 'owner') {
+      userData.ownerProfile = {
+        propertyName: req.body.propertyName,
+        propertyAddress: req.body.address, 
+        distanceToCollege: req.body.distanceToCollege,
+      };
+    }
 
-    res.status(201).json({ 
-      message: "User registered successfully", 
+    // 7. Save to DB
+    const user = await User.create(userData);
+
+    res.status(201).send({
       success: true,
-      user: { name: newUser.name, email: newUser.email, role: newUser.role } 
+      message: "User Registered Successfully",
+      user,
     });
-    
+
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server Error", success: false, error: error.message });
+    res.status(500).send({ success: false, message: "Error in Registration", error });
   }
 };
 
-export const login = async (req, res) => {
-    // ... (Keep your login logic here)
+// --- LOGIN CONTROLLER (FIXED) ---
+const loginController = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Validation
+    if (!email || !password) {
+      return res.status(404).send({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // 2. Check User
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "Email is not registered",
+      });
+    }
+
+    // 3. Check Password
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(200).send({
+        success: false,
+        message: "Invalid Password",
+      });
+    }
+
+    // 4. Generate Token
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.status(200).send({
+      success: true,
+      message: "Login successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+      token,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in login",
+      error,
+    });
+  }
 };
+
+module.exports = { registerController, loginController };

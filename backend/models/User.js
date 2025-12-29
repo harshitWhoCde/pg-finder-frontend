@@ -1,25 +1,34 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
+  // --- Common Fields ---
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phone: { type: String, required: true },
-  role: { type: String, enum: ['student', 'owner'], required: true },
+  role: { type: String, enum: ['student', 'owner', 'admin'], default: 'student' },
   
+  // Stores the path to the uploaded ID Proof/Student ID
+  idProofUrl: { type: String }, 
+  isVerified: { type: Boolean, default: false },
+
   // --- Student Specific Fields ---
-  college: { type: String },
-  budgetRange: { type: [Number] }, // Stores [min, max]
-  preferredRoomType: { type: [String] },
-  preferredAmenities: { type: [String] },
-  
+  studentProfile: {
+    college: { type: String },
+    budgetMin: { type: Number },
+    budgetMax: { type: Number },
+    roomType: [{ type: String }], // ["Single", "Double"]
+    amenities: [{ type: String }], // ["WiFi", "AC"]
+  },
+
   // --- Owner Specific Fields ---
-  propertyName: { type: String },
-  propertyAddress: { type: String },
-  propertyType: { type: String },
-  totalBeds: { type: Number },
-  propertyAmenities: { type: [String] },
+  ownerProfile: {
+    propertyName: { type: String },
+    propertyAddress: { type: String },
+    distanceToCollege: { type: Number },
+    // You can add more property details here later
+  }
 
 }, { timestamps: true });
 
-export const User = mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", userSchema);
