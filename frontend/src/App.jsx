@@ -6,9 +6,9 @@ import AuthForm from './components/auth/AuthForm';
 import { StudentRegistration } from './components/auth/StudentRegistration';
 import { OwnerRegistration } from './components/auth/OwnerRegistration';
 import { SuccessScreen } from './components/auth/SuccessScreen';
-import StudentDashboard from './components/dashboard/StudentDashboard'; 
+import EnhancedStudentDashboard from './components/student/DashBoard'; 
 // 👇 NEW IMPORT ADDED HERE
-import OwnerDashboard from './components/dashboard/OwnerDashboard'; 
+import EnhancedOwnerDashboard from './components/owner/OwnerDashboard'; 
 import HomePage from './pages/HomePage'; 
 
 // --- RoleSelection Component (No Changes) ---
@@ -160,12 +160,12 @@ const App = () => {
 
       {/* Dashboards */}
       {view === 'student-dashboard' && (
-        <StudentDashboard user={user} onLogout={handleLogout} />
-      )}
+  <EnhancedStudentDashboard user={user} onLogout={handleLogout} />
+)}
 
       {/* 👇 THIS IS THE FIX: Render the Real Owner Dashboard */}
       {view === 'owner-dashboard' && (
-        <OwnerDashboard user={user} onLogout={handleLogout} />
+        <EnhancedOwnerDashboard user={user} onLogout={handleLogout} />
       )}
 
     </div>
