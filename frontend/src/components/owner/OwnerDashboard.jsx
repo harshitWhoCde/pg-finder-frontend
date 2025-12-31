@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Home, FileText, Users, Plus, ArrowRight, LogOut, X, Clock, CheckCircle, AlertCircle, Trash2, Edit, Upload, MapPin, IndianRupee, TrendingUp, Loader2 } from 'lucide-react';
 
-const EnhancedOwnerDashboard = ({ user, onLogout }) => {
+const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd }) => {
   // State Management
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,8 +34,8 @@ const EnhancedOwnerDashboard = ({ user, onLogout }) => {
   const fetchMyProperties = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8080/api/v1/property/get-all', {
-        headers: { 'Authorization': token }
+      const res = await fetch('http://localhost:8080/api/v1/properties/owner-properties', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -165,7 +165,7 @@ const EnhancedOwnerDashboard = ({ user, onLogout }) => {
   };
 
   // Calculate Stats
-  const totalRevenue = properties.reduce((sum, p) => sum + (p.rent || 0), 0);
+  const totalRevenue = properties.reduce((sum, p) => sum + (Number(p.rent) || 0), 0);
   const stats = [
     { label: 'Total PGs', value: properties.length, icon: Home, color: 'from-blue-500 to-blue-600' },
     { label: 'Active Listings', value: properties.filter(p => p.isActive !== false).length, icon: CheckCircle, color: 'from-green-500 to-green-600' },
@@ -305,7 +305,7 @@ const EnhancedOwnerDashboard = ({ user, onLogout }) => {
               </div>
               <Plus size={32} className="group-hover:scale-110 transition-transform" />
             </div>
-            <button onClick={() => setIsAddPropertyOpen(true)} className="mt-4 flex items-center gap-2 text-sm font-semibold bg-white bg-opacity-30 hover:bg-opacity-40 text-blue-600 rounded-lg px-3 py-2 transition-all">
+            <button onClick={onNavigateToAdd} className="mt-4 flex items-center gap-2 text-sm font-semibold bg-white bg-opacity-30 hover:bg-opacity-40 text-blue-600 rounded-lg px-3 py-2 transition-all">
               Create Listing <ArrowRight size={16} />
             </button>
           </div>
@@ -325,99 +325,7 @@ const EnhancedOwnerDashboard = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* ADD PROPERTY FORM (Modal) */}
-        {isAddPropertyOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-300">
-              <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                <h2 className="text-xl font-bold">Add New Property</h2>
-                <button onClick={() => setIsAddPropertyOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button>
-              </div>
-              <div className="p-6 space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Property Title</label>
-                    <input name="title" required value={formData.title} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 focus:ring-2 ring-blue-500 outline-none" placeholder="e.g. Laxmi Hostel" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Rent (₹)</label>
-                    <input name="rent" type="number" required value={formData.rent} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 focus:ring-2 ring-blue-500 outline-none" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">City</label>
-                  <input name="city" required value={formData.city} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 outline-none" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Full Address</label>
-                  <textarea name="address" required value={formData.address} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 outline-none" rows="2"></textarea>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Distance (km)</label>
-                    <input name="distanceToCollege" type="number" required value={formData.distanceToCollege} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Type</label>
-                    <select name="type" value={formData.type} onChange={handleChange} className="w-full mt-1 p-3 border rounded-xl bg-gray-50 outline-none">
-                      <option>PG</option>
-                      <option>Hostel</option>
-                      <option>Flat</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-3 block">Gender Preference</label>
-                  <div className="flex gap-2">
-                    {['Any', 'Male', 'Female'].map(gender => (
-                      <button
-                        key={gender}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, gender }))}
-                        className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-                          formData.gender === gender
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {gender}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-3 block">Amenities</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {amenitiesOptions.map(amenity => (
-                      <button
-                        key={amenity}
-                        type="button"
-                        onClick={() => toggleAmenity(amenity)}
-                        className={`py-2 px-3 rounded-lg font-medium transition-all border-2 ${
-                          formData.amenities.includes(amenity)
-                            ? 'bg-blue-100 border-blue-600 text-blue-700'
-                            : 'bg-white border-gray-300 text-gray-700 hover:border-blue-300'
-                        }`}
-                      >
-                        {amenity}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                  <input type="file" multiple name="photos" onChange={handleChange} className="hidden" id="photo-upload" />
-                  <label htmlFor="photo-upload" className="cursor-pointer flex flex-col items-center">
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-blue-600 font-medium">Click to upload photos</span>
-                  </label>
-                </div>
-                <button onClick={handleAddSubmit} disabled={loading} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex justify-center items-center gap-2">
-                  {loading ? <Loader2 className="animate-spin" /> : "Publish Listing"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           

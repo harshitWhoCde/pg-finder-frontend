@@ -14,7 +14,7 @@ export default function Footer () {
                 <Home className="w-6 h-6 text-white" />
               </div>
               <div>
-                <div className="text-lg text-white">PG Finder</div>
+                <div className="text-lg text-white">PG Buddy</div>
                 <div className="text-xs text-gray-400">TIMSCDR Students</div>
               </div>
             </div>
@@ -63,14 +63,14 @@ export default function Footer () {
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-blue-500" />
-                <span className="text-sm">support@pgfinder.com</span>
+                <span className="text-sm">support@pgbuddy.com</span>
               </li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-400 text-sm">© 2025 PG Finder - TIMSCDR Students.</p>
+          <p className="text-gray-400 text-sm">© 2025 PG Buddy - TIMSCDR Students.</p>
         </div>
       </div>
     </footer>

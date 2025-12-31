@@ -9,6 +9,7 @@ import { SuccessScreen } from './components/auth/SuccessScreen';
 import EnhancedStudentDashboard from './components/student/DashBoard'; 
 // 👇 NEW IMPORT ADDED HERE
 import EnhancedOwnerDashboard from './components/owner/OwnerDashboard'; 
+import AddPGForm from './components/owner/AddNewPg';
 import HomePage from './pages/HomePage'; 
 
 // --- RoleSelection Component (No Changes) ---
@@ -164,8 +165,21 @@ const App = () => {
 )}
 
       {/* 👇 THIS IS THE FIX: Render the Real Owner Dashboard */}
+      {/* UPDATED: Owner Dashboard with Navigation Prop */}
       {view === 'owner-dashboard' && (
-        <EnhancedOwnerDashboard user={user} onLogout={handleLogout} />
+        <EnhancedOwnerDashboard 
+          user={user} 
+          onLogout={handleLogout} 
+          onNavigateToAdd={() => setView('add-pg')} 
+        />
+      )}
+      
+      {/* Add PG Form View */}
+      {view === 'add-pg' && (
+        <AddPGForm 
+          onBack={() => setView('owner-dashboard')} // To go back without saving
+          onSuccess={() => setView('owner-dashboard')} // To go back after publishing
+        />
       )}
 
     </div>

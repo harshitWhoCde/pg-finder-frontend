@@ -58,7 +58,7 @@ export default function WhyPlatform() {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-            Why Choose PG Finder - TIMSCDR?
+            Why Choose PG Buddy - TIMSCDR?
           </h2>
           <p className="text-lg text-gray-600">
             Built by students, for students. We understand what matters to you.
