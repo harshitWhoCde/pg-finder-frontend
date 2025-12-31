@@ -7,10 +7,13 @@ import { StudentRegistration } from './components/auth/StudentRegistration';
 import { OwnerRegistration } from './components/auth/OwnerRegistration';
 import { SuccessScreen } from './components/auth/SuccessScreen';
 import EnhancedStudentDashboard from './components/student/DashBoard'; 
-// 👇 NEW IMPORT ADDED HERE
 import EnhancedOwnerDashboard from './components/owner/OwnerDashboard'; 
 import AddPGForm from './components/owner/AddNewPg';
 import HomePage from './pages/HomePage'; 
+import ViewStudentApplicationPage from './components/owner/ViewApplications';
+
+// 👇 NEW IMPORT: Import the List Page
+import MyPGsListPage from './components/owner/PgListings'; 
 
 // --- RoleSelection Component (No Changes) ---
 const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
@@ -161,24 +164,41 @@ const App = () => {
 
       {/* Dashboards */}
       {view === 'student-dashboard' && (
-  <EnhancedStudentDashboard user={user} onLogout={handleLogout} />
-)}
+        <EnhancedStudentDashboard user={user} onLogout={handleLogout} />
+      )}
 
-      {/* 👇 THIS IS THE FIX: Render the Real Owner Dashboard */}
-      {/* UPDATED: Owner Dashboard with Navigation Prop */}
+      {/* --- OWNER DASHBOARD SECTION --- */}
       {view === 'owner-dashboard' && (
         <EnhancedOwnerDashboard 
           user={user} 
           onLogout={handleLogout} 
+          // Navigation to Add Form
           onNavigateToAdd={() => setView('add-pg')} 
+          // 👇 NEW: Navigation to List Page
+          onViewAllProperties={() => setView('owner-all-pgs')} 
+
+          onNavigateToApplications={() => setView('view-application')}
         />
       )}
       
       {/* Add PG Form View */}
       {view === 'add-pg' && (
         <AddPGForm 
-          onBack={() => setView('owner-dashboard')} // To go back without saving
-          onSuccess={() => setView('owner-dashboard')} // To go back after publishing
+          onBack={() => setView('owner-dashboard')} 
+          onSuccess={() => setView('owner-dashboard')} 
+        />
+      )}
+
+      {/* 👇 NEW VIEW: Owner All PGs List */}
+      {view === 'owner-all-pgs' && (
+        <MyPGsListPage 
+          onBack={() => setView('owner-dashboard')} 
+        />
+      )}
+
+      {view === 'view-application' && (
+        <ViewStudentApplicationPage 
+          onBack={() => setView('owner-dashboard')} 
         />
       )}
 

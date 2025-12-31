@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Home, FileText, Users, Plus, ArrowRight, LogOut, X, Clock, CheckCircle, AlertCircle, Trash2, Edit, Upload, MapPin, IndianRupee, TrendingUp, Loader2 } from 'lucide-react';
 
-const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd }) => {
+const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProperties ,onNavigateToApplications}) => {
   // State Management
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -319,7 +319,9 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd }) => {
               </div>
               <FileText size={32} className="group-hover:scale-110 transition-transform" />
             </div>
-            <button className="mt-4 flex items-center gap-2 text-sm font-semibold bg-white bg-opacity-30 hover:bg-opacity-40 text-purple-600 rounded-lg px-3 py-2 transition-all">
+            <button
+            onClick={onNavigateToApplications}
+            className="mt-4 flex items-center gap-2 text-sm font-semibold bg-white bg-opacity-30 hover:bg-opacity-40 text-purple-600 rounded-lg px-3 py-2 transition-all">
               Review Applications <ArrowRight size={16} />
             </button>
           </div>
@@ -392,7 +394,9 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd }) => {
                 )}
               </div>
 
-              <button className="w-full mt-6 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm">
+              <button
+              onClick={onViewAllProperties}
+               className="w-full mt-6 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm">
                 View All Properties
               </button>
             </div>

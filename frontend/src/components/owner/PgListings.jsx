@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, ArrowLeft, LogOut, X, MapPin, Home, Plus, Search, BarChart3, Settings, Edit } from 'lucide-react';
 
-export default function MyPGsListPage() {
+export default function MyPGsListPage({onBack}) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,7 +91,9 @@ export default function MyPGsListPage() {
       <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft size={24} className="text-gray-700" />
             </button>
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
