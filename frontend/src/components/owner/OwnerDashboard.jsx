@@ -34,7 +34,7 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProp
   const fetchMyProperties = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8080/api/v1/properties/owner-properties', {
+      const res = await fetch('http://localhost:8080/api/v1/property/owner-properties', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();

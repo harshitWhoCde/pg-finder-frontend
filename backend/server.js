@@ -16,7 +16,9 @@ const app = express();
 
 // Middlewares
 app.use(cors()); 
-app.use(express.json()); 
+// Increase the limit to 50mb so images can pass through JSON
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // 3. NEW: Make the "uploads" folder public
 // This allows the frontend to access uploaded images via URL
@@ -25,7 +27,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/properties", propertyRoutes); // 4. NEW: Enable Property Routes
+app.use("/api/v1/property", propertyRoutes); // 4. NEW: Enable Property Routes
 
 // Test API
 app.get("/", (req, res) => {

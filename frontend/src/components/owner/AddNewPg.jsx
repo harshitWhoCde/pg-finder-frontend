@@ -209,7 +209,7 @@ export default function AddPGForm({ onBack, onSuccess }) {
       });
 
       // 6. API Call
-      const response = await fetch('http://localhost:8080/api/v1/properties/add', {
+      const response = await fetch('http://localhost:8080/api/v1/property/add', {
         method: 'POST',
         headers: {
           // Important: Get token for protected route

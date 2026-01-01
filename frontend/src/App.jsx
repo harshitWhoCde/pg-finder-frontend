@@ -14,6 +14,7 @@ import ViewStudentApplicationPage from './components/owner/ViewApplications';
 
 // 👇 NEW IMPORT: Import the List Page
 import MyPGsListPage from './components/owner/PgListings'; 
+import EditPGPage from './components/owner/EditPgDetails';
 
 // --- RoleSelection Component (No Changes) ---
 const RoleSelection = ({ onSelectRole, onBackHome, mode }) => {
@@ -71,6 +72,8 @@ const App = () => {
   const [view, setView] = useState('home');
   const [authMode, setAuthMode] = useState('login'); 
   const [user, setUser] = useState(null); 
+  // 👇 NEW STATE: Store the PG data that needs to be edited
+  const [selectedPG, setSelectedPG] = useState(null);
 
   // Check for existing session
   useEffect(() => {
@@ -120,6 +123,12 @@ const App = () => {
   const handleRegistrationComplete = (data, type) => {
     setUser({ name: data.name, role: type, _id: data._id }); 
     setView('success');
+  };
+
+  // 👇 NEW HANDLER: For clicking "Edit" in the PG List
+  const handleEditPG = (pgData) => {
+    setSelectedPG(pgData);
+    setView('edit-pg');
   };
 
   return (
@@ -189,10 +198,22 @@ const App = () => {
         />
       )}
 
-      {/* 👇 NEW VIEW: Owner All PGs List */}
+      {/* OWNER LIST PAGE */}
       {view === 'owner-all-pgs' && (
         <MyPGsListPage 
-          onBack={() => setView('owner-dashboard')} 
+          user={user}
+          onBack={() => setView('owner-dashboard')}
+          onNavigateToAdd={() => setView('add-pg')}
+          onEdit={handleEditPG} // 👈 Pass the new edit handler here
+        />
+      )}
+
+      {/* 👇 NEW VIEW: The Edit Page */}
+      {view === 'edit-pg' && (
+        <EditPGPage 
+          pgToEdit={selectedPG} // 👈 Pass the selected PG data
+          user={user}
+          onBack={() => setView('owner-all-pgs')} // Go back to list, not dashboard
         />
       )}
 

@@ -1,59 +1,92 @@
-import React, { useState } from 'react';
-import { Bell, ArrowLeft, LogOut, X, Upload, ChevronDown, Wifi, Snowflake, UtensilsCrossed, MapPin, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, ArrowLeft, LogOut, X, Upload, Wifi, Snowflake, UtensilsCrossed, MapPin, Plus, Trash2, Search, Loader2 } from 'lucide-react';
 
-export default function AddNewPGPage() {
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+export default function EditPGPage({ onBack, pgToEdit, user }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadedImages, setUploadedImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false); // New: Loading state
 
   const [formData, setFormData] = useState({
-    // Basic Info
-    pgName: '',
-    address: '',
-    city: '',
-    pincode: '',
-    phone: '',
-    
-    // Details
-    description: '',
-    houseRules: '',
-    ownerPolicies: '',
-    
-    // Amenities
-    amenities: [],
-    
-    // Room Info
-    roomType: '',
-    numRooms: '',
-    pricePerRoom: '',
-    occupancy: '',
-    
-    // Preferences
-    genderPreference: '',
-    petPolicy: '',
-    visitorPolicy: ''
+    pgName: pgToEdit?.title || '',
+    address: pgToEdit?.address || '',
+    city: pgToEdit?.city || '',
+    pincode: pgToEdit?.pincode || '',
+    phone: pgToEdit?.phone || '',
+    description: pgToEdit?.description || '',
+    houseRules: pgToEdit?.houseRules || '',
+    ownerPolicies: pgToEdit?.ownerPolicies || '',
+    amenities: pgToEdit?.amenities || [],
+    roomType: pgToEdit?.roomType || '',
+    numRooms: pgToEdit?.numRooms || '',
+    pricePerRoom: pgToEdit?.rent || '',
+    occupancy: pgToEdit?.occupancy || '',
+    genderPreference: pgToEdit?.genderPreference || 'Any',
+    petPolicy: pgToEdit?.petPolicy || 'Not Allowed',
+    visitorPolicy: pgToEdit?.visitorPolicy || 'Restricted'
   });
 
-  const ownerName = "Rajesh Sharma";
+  const ownerName = user?.name || "Owner";
 
-  const amenitiesList = [
-    { id: 'wifi', label: 'Wi-Fi', icon: 'Wifi' },
-    { id: 'ac', label: 'AC', icon: 'AC' },
-    { id: 'food', label: 'Food', icon: 'Food' },
-    { id: 'parking', label: 'Parking', icon: 'Parking' },
-    { id: 'laundry', label: 'Laundry', icon: 'Laundry' },
-    { id: 'security', label: '24/7 Security', icon: 'Security' }
-  ];
+  useEffect(() => {
+    if (pgToEdit?.photos && pgToEdit.photos.length > 0) {
+      const existingPhotos = pgToEdit.photos.map(path => 
+        path.startsWith('http') ? path : `http://localhost:8080/${path}`
+      );
+      setUploadedImages(existingPhotos);
+    }
+  }, [pgToEdit]);
 
-  const steps = [
-    { title: 'Basic Info', icon: '📋' },
-    { title: 'Details', icon: '📝' },
-    { title: 'Photos', icon: '📷' },
-    { title: 'Amenities', icon: '⭐' },
-    { title: 'Room Info', icon: '🛏️' },
-    { title: 'Preferences', icon: '⚙️' }
-  ];
+  // 👇 NEW: FUNCTION TO SAVE CHANGES TO DATABASE
+  const handleSaveChanges = async () => {
+    setIsSubmitting(true);
+    try {
+      const cleanPhotos = uploadedImages.map(img => {
+  if (img.includes('http://localhost:8080/')) {
+    return img.replace('http://localhost:8080/', '');
+  }
+  return img; // Keep as is if it's a new Base64 string or already a path
+});
+      // Note: Use the ID from pgToEdit. Adjust the URL to match your backend route
+      const response = await fetch(`http://localhost:8080/api/v1/property/update/${pgToEdit._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          // If your route is protected, add the token:
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          title: formData.pgName,
+          address: formData.address,
+          city: formData.city,
+          pincode: formData.pincode,
+          phone: formData.phone,
+          description: formData.description,
+          houseRules: formData.houseRules,
+          amenities: formData.amenities,
+          roomType: formData.roomType,
+          numRooms: formData.numRooms,
+          rent: formData.pricePerRoom,
+          occupancy: formData.occupancy,
+          genderPreference: formData.genderPreference,
+          photos: cleanPhotos // Note: handling image updates usually requires Multer/FormData
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('PG details updated successfully!');
+        onBack(); // Go back to the list page
+      } else {
+        alert(`Update failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error updating PG:', error);
+      alert('An error occurred while saving.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -73,453 +106,119 @@ export default function AddNewPGPage() {
     const files = Array.from(e.target.files);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImages([...uploadedImages, event.target.result]);
-      };
+      reader.onload = (event) => setUploadedImages(prev => [...prev, event.target.result]);
       reader.readAsDataURL(file);
     });
   };
 
-  const removeImage = (index) => {
-    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
-  };
+  const removeImage = (index) => setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+
+  const amenitiesList = [
+    { id: 'wifi', label: 'Wi-Fi' }, { id: 'ac', label: 'AC' }, 
+    { id: 'food', label: 'Food' }, { id: 'parking', label: 'Parking' }, 
+    { id: 'laundry', label: 'Laundry' }, { id: 'security', label: '24/7 Security' }
+  ];
+
+  const steps = [
+    { title: 'Basic Info', icon: '📋' }, { title: 'Details', icon: '📝' },
+    { title: 'Photos', icon: '📷' }, { title: 'Amenities', icon: '⭐' },
+    { title: 'Room Info', icon: '🛏️' }, { title: 'Preferences', icon: '⚙️' }
+  ];
 
   const renderStepContent = () => {
     switch(currentStep) {
-      case 0: // Basic Info
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">PG Name *</label>
-              <input 
-                type="text" 
-                name="pgName"
-                value={formData.pgName}
-                onChange={handleInputChange}
-                placeholder="e.g., Sharma PG"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Address *</label>
-              <input 
-                type="text" 
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="Enter complete address"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">City *</label>
-                <input 
-                  type="text" 
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="e.g., New Delhi"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Pincode *</label>
-                <input 
-                  type="text" 
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 110016"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone *</label>
-                <input 
-                  type="tel" 
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="+91 XXXXX XXXXX"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
+        case 0: return (
+            <div className="space-y-4">
+              <input type="text" name="pgName" value={formData.pgName} onChange={handleInputChange} placeholder="PG Name" className="w-full p-2 border rounded" />
+              <input type="text" name="address" value={formData.address} onChange={handleInputChange} placeholder="Address" className="w-full p-2 border rounded" />
+              <div className="grid grid-cols-3 gap-2">
+                <input type="text" name="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="p-2 border rounded" />
+                <input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} placeholder="Pincode" className="p-2 border rounded" />
+                <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Phone" className="p-2 border rounded" />
               </div>
             </div>
-          </div>
         );
-
-      case 1: // Details
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Description *</label>
-              <textarea 
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Describe your PG and why students should choose it..."
-                rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-              ></textarea>
+        case 1: return (
+            <div className="space-y-4">
+              <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Description" rows="4" className="w-full p-2 border rounded" />
+              <textarea name="houseRules" value={formData.houseRules} onChange={handleInputChange} placeholder="House Rules" rows="3" className="w-full p-2 border rounded" />
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">House Rules *</label>
-              <textarea 
-                name="houseRules"
-                value={formData.houseRules}
-                onChange={handleInputChange}
-                placeholder="List your house rules (e.g., Quiet hours, Visitor policy, etc.)"
-                rows="3"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-              ></textarea>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Owner Policies</label>
-              <textarea 
-                name="ownerPolicies"
-                value={formData.ownerPolicies}
-                onChange={handleInputChange}
-                placeholder="Any specific policies or terms (e.g., Notice period, Deposit amount, etc.)"
-                rows="3"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-              ></textarea>
-            </div>
-          </div>
         );
-
-      case 2: // Photos
-        return (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center">
-              <Upload size={40} className="mx-auto text-blue-600 mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-2">Upload PG Photos</h3>
-              <p className="text-sm text-gray-600 mb-4">Click or drag and drop to upload images</p>
-              <input 
-                type="file" 
-                multiple 
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="imageInput"
-              />
-              <label 
-                htmlFor="imageInput"
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all font-semibold inline-block"
-              >
-                Choose Files
-              </label>
-            </div>
-
-            {uploadedImages.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Uploaded Images ({uploadedImages.length})</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {uploadedImages.map((image, idx) => (
-                    <div key={idx} className="relative group">
-                      <img src={image} alt={`Preview ${idx}`} className="w-full h-32 object-cover rounded-lg border border-gray-300" />
-                      <button 
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+        case 2: return (
+            <div className="space-y-4">
+              <input type="file" multiple onChange={handleImageUpload} id="imageInput" className="hidden" />
+              <label htmlFor="imageInput" className="p-4 border-2 border-dashed block text-center cursor-pointer">Upload New Photos</label>
+              <div className="grid grid-cols-3 gap-2">
+                {uploadedImages.map((img, i) => (
+                  <div key={i} className="relative"><img src={img} className="h-20 w-full object-cover" /><button onClick={() => removeImage(i)} className="absolute top-0 right-0 bg-red-500 text-white p-1">X</button></div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
         );
-
-      case 3: // Amenities
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">Select all amenities available in your PG</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {amenitiesList.map(amenity => (
-                <button
-                  key={amenity.id}
-                  onClick={() => handleAmenityToggle(amenity.id)}
-                  className={`p-4 rounded-lg border-2 font-semibold transition-all flex items-center justify-center gap-2 ${
-                    formData.amenities.includes(amenity.id)
-                      ? 'bg-blue-100 border-blue-600 text-blue-800'
-                      : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'
-                  }`}
-                >
-                  {amenity.icon === 'Wifi' && <Wifi size={18} />}
-                  {amenity.icon === 'AC' && <Snowflake size={18} />}
-                  {amenity.icon === 'Food' && <UtensilsCrossed size={18} />}
-                  {amenity.label}
-                </button>
+        case 3: return (
+            <div className="grid grid-cols-2 gap-2">
+              {amenitiesList.map(a => (
+                <button key={a.id} onClick={() => handleAmenityToggle(a.id)} className={`p-2 border rounded ${formData.amenities.includes(a.id) ? 'bg-blue-100 border-blue-600' : ''}`}>{a.label}</button>
               ))}
             </div>
-          </div>
         );
-
-      case 4: // Room Info
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Room Type *</label>
-              <div className="flex gap-3">
-                {['Single', 'Double', 'Shared'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setFormData({ ...formData, roomType: type })}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold border-2 transition-all ${
-                      formData.roomType === type
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
+        case 4: return (
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                {['Single', 'Double', 'Shared'].map(t => <button key={t} onClick={() => setFormData({...formData, roomType: t})} className={`flex-1 p-2 border rounded ${formData.roomType === t ? 'bg-blue-600 text-white' : ''}`}>{t}</button>)}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" name="numRooms" value={formData.numRooms} onChange={handleInputChange} placeholder="Rooms" className="p-2 border rounded" />
+                <input type="number" name="pricePerRoom" value={formData.pricePerRoom} onChange={handleInputChange} placeholder="Rent" className="p-2 border rounded" />
+                <input type="number" name="occupancy" value={formData.occupancy} onChange={handleInputChange} placeholder="Occ." className="p-2 border rounded" />
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Rooms *</label>
-                <input 
-                  type="number" 
-                  name="numRooms"
-                  value={formData.numRooms}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 5"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Room *</label>
-                <input 
-                  type="number" 
-                  name="pricePerRoom"
-                  value={formData.pricePerRoom}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 15000"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Occupancy per Room</label>
-                <input 
-                  type="number" 
-                  name="occupancy"
-                  value={formData.occupancy}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 2"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-              </div>
-            </div>
-          </div>
         );
-
-      case 5: // Preferences
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Gender Preference *</label>
-              <div className="flex gap-3">
-                {['Any', 'Male', 'Female'].map(gender => (
-                  <button
-                    key={gender}
-                    onClick={() => setFormData({ ...formData, genderPreference: gender })}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold border-2 transition-all ${
-                      formData.genderPreference === gender
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    {gender}
-                  </button>
-                ))}
-              </div>
+        case 5: return (
+            <div className="flex gap-2">
+                {['Any', 'Male', 'Female'].map(g => <button key={g} onClick={() => setFormData({...formData, genderPreference: g})} className={`flex-1 p-2 border rounded ${formData.genderPreference === g ? 'bg-blue-600 text-white' : ''}`}>{g}</button>)}
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Pet Policy *</label>
-              <div className="flex gap-3">
-                {['Allowed', 'Not Allowed'].map(policy => (
-                  <button
-                    key={policy}
-                    onClick={() => setFormData({ ...formData, petPolicy: policy })}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold border-2 transition-all ${
-                      formData.petPolicy === policy
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    {policy}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Visitor Policy *</label>
-              <div className="flex gap-3">
-                {['Open', 'Restricted', 'No Visitors'].map(policy => (
-                  <button
-                    key={policy}
-                    onClick={() => setFormData({ ...formData, visitorPolicy: policy })}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold border-2 transition-all ${
-                      formData.visitorPolicy === policy
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    {policy}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         );
-
-      default:
-        return null;
+        default: return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header/Navbar */}
-      <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft size={24} className="text-gray-700" />
-            </button>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-              PG
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 hidden sm:block">PGBuddy</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <Bell size={24} />
-            </button>
-
-            {/* Profile Menu */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold hover:shadow-lg transition-shadow"
-              >
-                {ownerName.charAt(0)}
-              </button>
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200">
-                  <div className="p-4 border-b border-gray-200">
-                    <p className="font-semibold text-gray-900">{ownerName}</p>
-                  </div>
-                  <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
-                  <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                    <LogOut size={16} /> Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white p-4 shadow flex justify-between items-center">
+        <button onClick={onBack} className="flex items-center gap-2"><ArrowLeft size={20} /> Back</button>
+        <h1 className="text-xl font-bold">Edit PG</h1>
+        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">{ownerName[0]}</div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Page Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Add New PG</h2>
-          <p className="text-gray-600 mt-2">Create a new property listing</p>
+      <main className="max-w-3xl mx-auto p-6">
+        <div className="flex justify-between mb-8 overflow-x-auto gap-4">
+          {steps.map((s, i) => (
+            <div key={i} className={`text-center ${currentStep === i ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-full mx-auto flex items-center justify-center ${currentStep === i ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>{s.icon}</div>
+                <p className="text-xs mt-1">{s.title}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Progress Steps */}
-        <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200 mb-8">
-          <div className="flex items-center justify-between overflow-x-auto pb-4">
-            {steps.map((step, idx) => (
-              <div key={idx} className="flex items-center">
-                <button
-                  onClick={() => setCurrentStep(idx)}
-                  className={`w-12 h-12 rounded-full font-bold flex items-center justify-center transition-all ${
-                    currentStep === idx
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                      : currentStep > idx
-                      ? 'bg-green-100 text-green-800 border-2 border-green-300'
-                      : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-                  }`}
-                  title={step.title}
-                >
-                  {step.icon}
-                </button>
-                
-                {idx < steps.length - 1 && (
-                  <div className={`h-1 w-8 mx-2 ${currentStep > idx ? 'bg-green-300' : 'bg-gray-300'}`}></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm font-semibold text-gray-700 mt-4">{steps[currentStep].title}</p>
-        </div>
-
-        {/* Form Content */}
-        <div className="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border mb-6">
           {renderStepContent()}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 justify-between">
-          <div className="flex gap-3">
-            {currentStep > 0 && (
-              <button 
-                onClick={() => setCurrentStep(currentStep - 1)}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-              >
-                ← Previous
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-3">
-            <button className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
-              Cancel
+        <div className="flex justify-between">
+          <button disabled={currentStep === 0} onClick={() => setCurrentStep(prev => prev - 1)} className="px-6 py-2 bg-gray-200 rounded disabled:opacity-50">Previous</button>
+          
+          {currentStep < steps.length - 1 ? (
+            <button onClick={() => setCurrentStep(prev => prev + 1)} className="px-6 py-2 bg-blue-600 text-white rounded">Next</button>
+          ) : (
+            <button 
+              onClick={handleSaveChanges} 
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-green-600 text-white rounded flex items-center gap-2 disabled:bg-green-400"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Save Changes'}
             </button>
-
-            <button className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold">
-              Save as Draft
-            </button>
-
-            {currentStep < steps.length - 1 ? (
-              <button 
-                onClick={() => setCurrentStep(currentStep + 1)}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold"
-              >
-                Next →
-              </button>
-            ) : (
-              <button className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-semibold">
-                Publish PG
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </main>
     </div>

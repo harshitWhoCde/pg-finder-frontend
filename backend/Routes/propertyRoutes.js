@@ -40,6 +40,38 @@ router.post(
   createPropertyController
 );
 
+
+// PUT /api/v1/property/update/:id
+router.put("/update/:id", requireSignIn, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Find the property and update it with the data from req.body
+    const updatedProperty = await Property.findByIdAndUpdate(
+      id,
+      { ...req.body },
+      { new: true } // This returns the updated document instead of the old one
+    );
+
+    if (!updatedProperty) {
+      return res.status(404).json({ success: false, message: "Property not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Property Updated Successfully",
+      updatedProperty,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error while updating property",
+      error,
+    });
+  }
+});
+
+
 // GET /api/v1/property/get-all
 router.get("/get-all", getAllPropertiesController);
 // Get properties only for the logged-in owner
