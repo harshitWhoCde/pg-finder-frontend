@@ -12,11 +12,11 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
   const [selectedCollege, setSelectedCollege] = useState('');
   const [collegeDropdown, setCollegeDropdown] = useState(false);
   const [searchFilters, setSearchFilters] = useState({
-    budget: [10000, 20000],
-    facilities: [],
-    gender: 'Any',
-    roomtype: 'Any'
-  });
+  budget: [0, 100000], // Start with a very wide range
+  facilities: [],
+  gender: 'Any',
+  roomtype: 'Any'
+});
 
   const colleges = ['IIT Delhi', 'Delhi University', 'NSIT Delhi', 'IP University'];
   const facilities = ['WiFi', 'Food', 'AC', 'Laundry', 'Parking', 'Security'];
@@ -27,6 +27,7 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
       try {
         const res = await fetch('http://localhost:8080/api/v1/property/get-all');
         const data = await res.json();
+        console.log("ALL PROPERTIES FROM SERVER:", data);
         if (data.success) {
           setProperties(data.properties);
         }
@@ -61,7 +62,9 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
     const priceMatch = pg.rent >= searchFilters.budget[0] && pg.rent <= searchFilters.budget[1];
     const facilitiesMatch = searchFilters.facilities.length === 0 || 
       searchFilters.facilities.every(f => pg.amenities?.includes(f));
-    const genderMatch = searchFilters.gender === 'Any' || pg.gender === 'Any' || pg.gender === searchFilters.gender;
+    const genderMatch = searchFilters.gender === 'Any' || 
+                   pg.genderPreference === 'Any' || 
+                   pg.genderPreference === searchFilters.gender;
     return priceMatch && facilitiesMatch && genderMatch;
   });
 
@@ -88,7 +91,7 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
     };
     return iconMap[facility];
   };
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       
@@ -351,11 +354,19 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
                   {/* Image */}
                   <div className="relative h-32 bg-gray-200 overflow-hidden">
                     <img 
-                      src={pg.photos?.[0] ? `http://localhost:8080/${pg.photos[0]}` : "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80"} 
-                      alt={pg.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => e.target.src = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80"}
-                    />
+  src={
+    pg.photos?.[0] 
+      ? (pg.photos[0].startsWith('http') || pg.photos[0].startsWith('data:')
+          ? pg.photos[0] 
+          : `http://localhost:8080/${pg.photos[0]}`)
+      : "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80"
+  } 
+  alt={pg.title}
+  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+  onError={(e) => {
+    e.target.src = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80";
+  }}
+/>
                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-green-700 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Verified
                     </div>
@@ -385,7 +396,8 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <p className="text-lg font-bold text-blue-600">₹{pg.rent}</p>
-                      <button className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
+                      <button onClick={() => navigate(`/pg-details/${pg._id}`)}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
                         View Details
                       </button>
                     </div>
