@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Bookmark, FileText, Search, MapPin, Wifi, UtensilsCrossed, Snowflake, X, ArrowRight, LogOut, ChevronDown, Home, Star, CheckCircle2, Wind, Utensils, Dumbbell } from 'lucide-react';
 
-const EnhancedStudentDashboard = ({ user, onLogout }) => {
+const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
   // State Management
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -396,7 +396,7 @@ const EnhancedStudentDashboard = ({ user, onLogout }) => {
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <p className="text-lg font-bold text-blue-600">₹{pg.rent}</p>
-                      <button onClick={() => navigate(`/pg-details/${pg._id}`)}
+                      <button onClick={() => onViewDetails(pg)}
                       className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
                         View Details
                       </button>
