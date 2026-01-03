@@ -46,17 +46,47 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProp
     }
   };
 
-  const fetchNotifications = async () => {
-    try {
-      const sampleNotifications = [
-        { id: 1, message: 'New application from a student for your PG', time: '2 hours ago' },
-        { id: 2, message: 'Your property reached 50 views', time: '1 day ago' },
-      ];
-      setNotifications(sampleNotifications);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+  // Add this helper for formatting dates
+const formatTime = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    // Inside OwnerDashboard.jsx
+const res = await fetch('http://localhost:8080/api/v1/application/owner-applications', {
+  headers: { 
+    'Authorization': `Bearer ${token}` 
+  }
+});
+    const data = await res.json();
+    
+    if (data.success) {
+      // Map applications to your dashboard's notification format
+      const realNotifications = data.applications.map(app => ({
+        id: app._id,
+        message: `New application from ${app.student?.name || 'Student'} for ${app.property?.title || 'a property'}`,
+        time: new Date(app.createdAt).toLocaleDateString(),
+      }));
+      setNotifications(realNotifications);
+
+      // Update the Recent Activity section too
+      const realActivity = data.applications.map(app => ({
+        id: app._id,
+        type: 'application',
+        studentName: app.student?.name || 'Student',
+        pgName: app.property?.title || 'Deleted Property', // Matches the safe JSX above
+        time: 'Recently',
+        status: app.status.toLowerCase()
+      }));
+      setRecentActivity(realActivity);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching activity:", error);
+  }
+};
 
   const fetchRecentActivity = async () => {
     try {
@@ -145,24 +175,39 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProp
   };
 
   const handleDeleteProperty = async (propertyId) => {
-    if (window.confirm('Are you sure you want to delete this property?')) {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:8080/api/v1/property/delete/${propertyId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': token }
-        });
-        const result = await res.json();
-        if (result.success) {
-          alert("Property deleted successfully");
-          fetchMyProperties();
+  // 1. Modern Confirmation Dialog
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this property? This action cannot be undone and will remove all associated data from the database."
+  );
+
+  if (confirmDelete) {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 2. API Call to Database
+      const res = await fetch(`http://localhost:8080/api/v1/property/delete/${propertyId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}` // Ensure 'Bearer ' prefix is used if your middleware expects it
         }
-      } catch (error) {
-        console.error("Error deleting property:", error);
-        alert("Failed to delete property");
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        alert("Property successfully removed from database.");
+        
+        // 3. UI Update: Refresh the list from the database
+        fetchMyProperties(); 
+      } else {
+        alert(result.message || "Failed to delete property");
       }
+    } catch (error) {
+      console.error("Database Error:", error);
+      alert("System error: Could not reach the server to delete the property.");
     }
-  };
+  }
+};
 
   // Calculate Stats
   const totalRevenue = properties.reduce((sum, p) => sum + (Number(p.rent) || 0), 0);
@@ -345,9 +390,13 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProp
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm">
-                          <span className="text-blue-600">{activity.studentName}</span> {activity.type === 'application' ? 'applied to' : activity.type === 'view' ? 'viewed' : 'inquired about'} <span className="text-blue-600">{activity.pgName}</span>
-                        </p>
+                       <p className="font-semibold text-gray-900 text-sm">
+  <span className="text-blue-600">{activity.studentName}</span> 
+  {' applied to '} 
+  <span className="text-blue-600">
+    {activity.pgName || "Deleted Property"}
+  </span>
+</p>
                         <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
                       </div>
                       
@@ -374,25 +423,32 @@ const EnhancedOwnerDashboard = ({ user, onLogout, onNavigateToAdd, onViewAllProp
             <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200 h-fit">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Properties</h3>
               
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {properties.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No properties yet</p>
-                ) : (
-                  properties.slice(0, 5).map(property => (
-                    <div key={property._id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">{property.title}</p>
-                          <p className="text-xs text-gray-500 mt-1">₹{property.rent}/month</p>
-                        </div>
-                        <button onClick={() => handleDeleteProperty(property._id)} className="p-1 hover:bg-red-100 text-red-600 rounded transition-colors flex-shrink-0">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              {/* Properties List Section */}
+<div className="space-y-3 max-h-96 overflow-y-auto">
+  {properties.length === 0 ? (
+    <p className="text-center text-gray-500 py-8">No properties yet</p>
+  ) : (
+    properties.slice(0, 5).map(property => (
+      <div key={property._id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-all border border-transparent hover:border-red-100 group">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-gray-900 truncate">{property.title}</p>
+            <p className="text-xs text-gray-500 mt-1">₹{property.rent}/month</p>
+          </div>
+          
+          {/* Delete Button with Tooltip-like feel */}
+          <button 
+            onClick={() => handleDeleteProperty(property._id)} 
+            title="Delete Property"
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+    ))
+  )}
+</div>
 
               <button
               onClick={onViewAllProperties}

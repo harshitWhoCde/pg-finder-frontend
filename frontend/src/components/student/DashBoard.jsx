@@ -11,6 +11,7 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
   
   const [selectedCollege, setSelectedCollege] = useState('');
   const [collegeDropdown, setCollegeDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
   budget: [0, 100000], // Start with a very wide range
   facilities: [],
@@ -20,6 +21,23 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
 
   const colleges = ['IIT Delhi', 'Delhi University', 'NSIT Delhi', 'IP University'];
   const facilities = ['WiFi', 'Food', 'AC', 'Laundry', 'Parking', 'Security'];
+  const [savedPGs, setSavedPGs] = useState([]);
+
+// Load saved PGs from localStorage on mount
+useEffect(() => {
+  const saved = JSON.parse(localStorage.getItem('savedPGs') || '[]');
+  setSavedPGs(saved);
+}, []);
+
+const toggleSavePG = (e, pgId) => {
+  e.stopPropagation(); // Prevents triggering card click
+  const updatedSaved = savedPGs.includes(pgId)
+    ? savedPGs.filter(id => id !== pgId)
+    : [...savedPGs, pgId];
+  
+  setSavedPGs(updatedSaved);
+  localStorage.setItem('savedPGs', JSON.stringify(updatedSaved));
+};
 
   // Fetch Properties from Database
   useEffect(() => {
@@ -41,14 +59,37 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
   }, []);
 
   // Fetch Notifications
-  useEffect(() => {
-    const sampleNotifications = [
-      { id: 1, message: '2 new PGs added near your college within 2km', type: 'new_listing', time: '2 hours ago' },
-      { id: 2, message: 'Your application for a PG was accepted!', type: 'application', time: '1 day ago' },
-      { id: 3, message: 'New message from a property owner', type: 'message', time: '2 days ago' }
-    ];
-    setNotifications(sampleNotifications);
-  }, []);
+  // Dynamic Fetch Notifications
+useEffect(() => {
+  const fetchStudentNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // Adjust this URL to match your student applications route
+      const res = await fetch('http://localhost:8080/api/v1/application/student-applications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        const dynamicNotifications = data.applications.map(app => ({
+          id: app._id,
+          type: 'application',
+          // Custom message based on status
+          message: app.status === 'PENDING' 
+            ? `Application for ${app.property?.title} is under review.`
+            : `Your application for ${app.property?.title} has been ${app.status.toLowerCase()}!`,
+          time: new Date(app.updatedAt).toLocaleDateString(),
+          status: app.status
+        }));
+        setNotifications(dynamicNotifications);
+      }
+    } catch (error) {
+      console.error("Error fetching student notifications:", error);
+    }
+  };
+
+  if (user) fetchStudentNotifications();
+}, [user]);
 
   // Set default college
   useEffect(() => {
@@ -59,14 +100,22 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
 
   // Filter Logic
   const filteredProperties = properties.filter(pg => {
-    const priceMatch = pg.rent >= searchFilters.budget[0] && pg.rent <= searchFilters.budget[1];
-    const facilitiesMatch = searchFilters.facilities.length === 0 || 
-      searchFilters.facilities.every(f => pg.amenities?.includes(f));
-    const genderMatch = searchFilters.gender === 'Any' || 
-                   pg.genderPreference === 'Any' || 
-                   pg.genderPreference === searchFilters.gender;
-    return priceMatch && facilitiesMatch && genderMatch;
-  });
+  // Check if search query matches title or city (case insensitive)
+  const query = searchQuery.toLowerCase();
+  const matchesSearch = pg.title?.toLowerCase().includes(query) || 
+                        pg.city?.toLowerCase().includes(query);
+
+  const priceMatch = pg.rent >= searchFilters.budget[0] && pg.rent <= searchFilters.budget[1];
+  
+  const facilitiesMatch = searchFilters.facilities.length === 0 || 
+    searchFilters.facilities.every(f => pg.amenities?.includes(f));
+    
+  const genderMatch = searchFilters.gender === 'Any' || 
+                      pg.genderPreference === 'Any' || 
+                      pg.genderPreference === searchFilters.gender;
+
+  return matchesSearch && priceMatch && facilitiesMatch && genderMatch;
+});
 
   const handleBudgetChange = (value) => {
     setSearchFilters({ ...searchFilters, budget: value });
@@ -121,26 +170,50 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
               </button>
               
               {/* Notification Dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 max-h-96 overflow-y-auto z-50">
-                  <div className="p-4 border-b border-gray-200 sticky top-0 bg-gray-50 rounded-t-xl flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">
-                      <X size={18} />
-                    </button>
-                  </div>
-                  {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">No notifications</div>
-                  ) : (
-                    notifications.map(notif => (
-                      <div key={notif.id} className="p-4 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors">
-                        <p className="text-sm text-gray-800">{notif.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+{showNotifications && (
+  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 max-h-96 overflow-y-auto z-50">
+    {/* Header */}
+    <div className="p-4 border-b border-gray-200 sticky top-0 bg-gray-50 rounded-t-xl flex items-center justify-between">
+      <h3 className="font-semibold text-gray-900">Notifications</h3>
+      <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">
+        <X size={18} />
+      </button>
+    </div>
+
+    {/* Notification List */}
+    {notifications.length === 0 ? (
+      <div className="p-4 text-center text-gray-500">No notifications</div>
+    ) : (
+      notifications.map((notif) => (
+        <div
+          key={notif.id}
+          className="p-4 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors relative"
+        >
+          <div className="flex gap-3">
+            {/* Status Indicator Dot */}
+            <div
+              className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                notif.status === "APPROVED"
+                  ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                  : notif.status === "REJECTED"
+                  ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                  : "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+              }`}
+            />
+            <div>
+              <p className="text-sm text-gray-800 leading-snug font-medium">
+                {notif.message}
+              </p>
+              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                {notif.time}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
             </div>
 
             {/* Profile Menu */}
@@ -176,7 +249,6 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name?.split(' ')[0]}! 👋</h2>
-          <p className="text-gray-600 mt-2">Searching for PGs near <span className="font-semibold text-blue-600">{selectedCollege}</span></p>
         </div>
 
         {/* Quick Action Cards */}
@@ -197,9 +269,12 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white cursor-pointer hover:shadow-xl transition-shadow group">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Saved PGs</h3>
-                <p className="text-purple-100 text-sm">Your bookmarked properties</p>
-              </div>
+      <h3 className="text-lg font-semibold mb-2">Saved PGs</h3>
+      {/* Update the text below */}
+      <p className="text-purple-100 text-sm">
+        {savedPGs.length} {savedPGs.length === 1 ? 'property' : 'properties'} bookmarked
+      </p>
+    </div>
               <Bookmark size={32} className="group-hover:scale-110 transition-transform" />
             </div>
             <button className="mt-4 flex items-center gap-2 text-sm font-semibold bg-white bg-opacity-30 hover:bg-opacity-40 text-purple-600 rounded-lg px-3 py-2 transition-all">
@@ -211,34 +286,43 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
         {/* Search Section */}
         <div className="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-8">
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Search PGs Near Your College</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Discover comfort, Find your perfect stay</h3>
             
-            {/* College Selection */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Select College</label>
-              <div className="relative">
-                <button 
-                  onClick={() => setCollegeDropdown(!collegeDropdown)}
-                  className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg bg-white text-gray-900 flex items-center justify-between hover:border-blue-500 transition-colors"
-                >
-                  <span className="font-medium">{selectedCollege}</span>
-                  <ChevronDown size={20} className={`transition-transform ${collegeDropdown ? 'rotate-180' : ''}`} />
-                </button>
-                {collegeDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-blue-300 rounded-lg shadow-lg z-10">
-                    {colleges.map(college => (
-                      <button
-                        key={college}
-                        onClick={() => { setSelectedCollege(college); setCollegeDropdown(false); }}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {college}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Search Input Section */}
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Search by PG Name or City
+  </label>
+  <div className="relative group">
+    {/* Search Icon */}
+    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+      <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+    </div>
+
+    {/* Input Field */}
+    <input
+      type="text"
+      placeholder="Try 'Standard PG' or 'Delhi'..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full pl-11 pr-12 py-3 border-2 border-blue-100 rounded-xl bg-white text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none shadow-sm placeholder:text-gray-400"
+    />
+
+    {/* Clear Button (only shows when typing) */}
+    {searchQuery && (
+      <button 
+        onClick={() => setSearchQuery('')}
+        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-red-500 transition-colors"
+        title="Clear search"
+      >
+        <X size={20} />
+      </button>
+    )}
+  </div>
+  
+  {/* Optional: Small helper text */}
+
+</div>
 
             {/* Filters Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -367,9 +451,21 @@ const EnhancedStudentDashboard = ({ user, onLogout ,onViewDetails}) => {
     e.target.src = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80";
   }}
 />
+{/* Add this Button below the Verified badge */}
+  <button 
+    onClick={(e) => toggleSavePG(e, pg._id)}
+    className={`absolute top-2 left-2 p-2 rounded-full backdrop-blur-md transition-all ${
+      savedPGs.includes(pg._id) 
+      ? 'bg-blue-600 text-white shadow-lg' 
+      : 'bg-white/80 text-gray-600 hover:bg-white'
+    }`}
+  >
+    <Bookmark size={16} fill={savedPGs.includes(pg._id) ? "currentColor" : "none"} />
+  </button>
                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-green-700 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Verified
                     </div>
+                    
                   </div>
 
                   {/* Content */}

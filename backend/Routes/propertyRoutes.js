@@ -71,6 +71,35 @@ router.put("/update/:id", requireSignIn, async (req, res) => {
   }
 });
 
+// Backend Route (propertyRoutes.js)
+router.delete('/delete/:id', requireSignIn, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // IMPORTANT: Changed PropertyModel to Property to match your import at the top
+    const deletedProperty = await Property.findByIdAndDelete(id);
+
+    if (!deletedProperty) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Property not found in database" 
+      });
+    }
+
+    res.status(200).send({ 
+      success: true, 
+      message: "Property deleted from database successfully" 
+    });
+  } catch (error) {
+    console.error("DELETE ERROR:", error);
+    res.status(500).send({ 
+      success: false, 
+      message: "Server error during deletion",
+      error: error.message 
+    });
+  }
+});
+
 
 // GET /api/v1/property/get-all
 router.get("/get-all", getAllPropertiesController);

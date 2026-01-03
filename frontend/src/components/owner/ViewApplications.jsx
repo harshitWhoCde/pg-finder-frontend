@@ -13,7 +13,7 @@ export default function ViewStudentApplicationPage({ onBack }) {
   const fetchApplications = async () => {
     try {
       const res = await fetch(
-        "http://localhost:8080/api/applications/owner",
+        "http://localhost:8080/api/v1/application/owner-applications",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -37,7 +37,7 @@ export default function ViewStudentApplicationPage({ onBack }) {
       setUpdatingId(id);
 
       const res = await fetch(
-        `http://localhost:8080/api/applications/${id}/status`,
+        `http://localhost:8080/api/v1/application/update-status/${id}`,
         {
           method: "PUT",
           headers: {
@@ -110,7 +110,7 @@ export default function ViewStudentApplicationPage({ onBack }) {
             </p>
 
             <div className="mt-3 text-sm">
-              <p><strong>PG:</strong> {app.property.title}</p>
+              <p><strong>PG:</strong> {app.property?.title || "Property Deleted"}</p>
               <p><strong>College:</strong> {app.studentDetails.college}</p>
               <p><strong>Phone:</strong> {app.studentDetails.phone}</p>
             </div>

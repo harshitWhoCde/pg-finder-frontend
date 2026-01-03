@@ -35,7 +35,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 ======================= */
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/property", propertyRoutes);
-app.use("/api/applications", applicationRoutes);
+app.use("/api/v1/application", applicationRoutes);
 
 /* =======================
    ROOT TEST ROUTE

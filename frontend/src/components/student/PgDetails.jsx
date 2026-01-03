@@ -45,7 +45,7 @@ export default function PGDetailsPage({ pgData, onBack, user }) {
       setLoading(true);
 
       const res = await fetch(
-        "http://localhost:8080/api/applications/apply",
+        "http://localhost:8080/api/v1/application/apply",
         {
           method: "POST",
           headers: {
