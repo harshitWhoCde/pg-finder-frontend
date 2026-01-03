@@ -1,42 +1,65 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const path = require("path"); // 1. NEW: Required for file paths
+const path = require("path");
 const connectDB = require("./config/db");
-const authRoutes = require("./Routes/authRoutes");
-const propertyRoutes = require("./Routes/propertyRoutes"); // 2. NEW: Import Property Routes
 
-// Configure env
+// Routes
+const authRoutes = require("./Routes/authRoutes");
+const propertyRoutes = require("./Routes/propertyRoutes");
+const applicationRoutes = require("./Routes/applicationRoutes");
+
+// Load env variables
 dotenv.config();
 
-// Connect Database
+// Connect to DB
 connectDB();
 
 const app = express();
 
-// Middlewares
-app.use(cors()); 
-// Increase the limit to 50mb so images can pass through JSON
-app.use(express.json({ limit: '50mb' })); 
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+/* =======================
+   MIDDLEWARES
+======================= */
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// 3. NEW: Make the "uploads" folder public
-// This allows the frontend to access uploaded images via URL
-// This allows the frontend to access the images via http://localhost:8080/uploads/filename.jpg
-app.use('/uploads', express.static('uploads'));
+/* =======================
+   STATIC FILES
+======================= */
+// Serve uploaded images
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+/* =======================
+   ROUTES
+======================= */
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/property", propertyRoutes); // 4. NEW: Enable Property Routes
+app.use("/api/v1/property", propertyRoutes);
+app.use("/api/applications", applicationRoutes);
 
-// Test API
+/* =======================
+   ROOT TEST ROUTE
+======================= */
 app.get("/", (req, res) => {
   res.send("<h1>Welcome to PG Finder App Server</h1>");
 });
 
-// Port
+/* =======================
+   GLOBAL ERROR HANDLER (SAFE)
+======================= */
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error"
+  });
+});
+
+/* =======================
+   START SERVER
+======================= */
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
-  console.log(`Server Running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
