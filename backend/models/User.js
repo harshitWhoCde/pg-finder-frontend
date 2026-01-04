@@ -12,6 +12,13 @@ const userSchema = new mongoose.Schema({
   idProofUrl: { type: String }, 
   isVerified: { type: Boolean, default: false },
 
+  bookmarks: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Property", // 👈 Make sure this exactly matches the name in propertyModel.js
+  },
+],
+
   // --- Student Specific Fields ---
   studentProfile: {
     college: { type: String },

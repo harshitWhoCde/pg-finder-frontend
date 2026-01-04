@@ -1,81 +1,114 @@
-import React, { useState } from 'react';
-import { Bell, ArrowLeft, LogOut, X, MapPin, Calendar, Clock, CheckCircle, AlertCircle, XCircle, ChevronRight, Eye, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, ArrowLeft, LogOut, X, MapPin, Calendar, Clock, CheckCircle, AlertCircle, XCircle, ChevronRight, Eye, Trash2, Loader2 } from 'lucide-react';
 
-export default function MyApplicationsPage({ onBack }) {
+export default function MyApplicationsPage({ onBack, userId }) {
+  console.log("Current userId prop:", userId);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [applications, setApplications] = useState([
-    {
-      id: 1,
-      pgName: 'Sharma PG',
-      location: 'Near IIT Delhi Gate, New Delhi',
-      price: 15000,
-      status: 'accepted',
-      appliedDate: '2024-01-15',
-      respondedDate: '2024-01-18',
-      coverLetter: 'I am a dedicated student looking for a comfortable and safe accommodation near my college. Your PG has excellent reviews and facilities that match my requirements perfectly.',
-      moveInDate: '2024-02-01',
-      duration: 12,
-      preferences: 'Quiet environment, vegetarian meals preferred'
-    },
-    {
-      id: 2,
-      pgName: 'Cozy Corner',
-      location: 'Kasturba Nagar, New Delhi',
-      price: 12500,
-      status: 'pending',
-      appliedDate: '2024-01-20',
-      respondedDate: null,
-      coverLetter: 'I am very interested in your property as it offers great value for money and is close to my institute.',
-      moveInDate: '2024-02-15',
-      duration: 10,
-      preferences: 'Good Wi-Fi, AC preferred'
-    },
-    {
-      id: 3,
-      pgName: 'Home Sweet Home',
-      location: 'Mehrauli, New Delhi',
-      price: 14000,
-      status: 'rejected',
-      appliedDate: '2024-01-10',
-      respondedDate: '2024-01-12',
-      coverLetter: 'Looking for comfortable accommodation near my university with modern amenities.',
-      moveInDate: '2024-02-01',
-      duration: 12,
-      preferences: 'Non-vegetarian meals, parking facility'
-    },
-    {
-      id: 4,
-      pgName: 'Tech Hub Residence',
-      location: 'Okhla, New Delhi',
-      price: 16500,
-      status: 'pending',
-      appliedDate: '2024-01-22',
-      respondedDate: null,
-      coverLetter: 'Your property seems perfect for my needs with excellent facilities and great location.',
-      moveInDate: '2024-03-01',
-      duration: 11,
-      preferences: 'High-speed Wi-Fi, study room'
-    },
-    {
-      id: 5,
-      pgName: 'Student Haven',
-      location: 'Dwarka, New Delhi',
-      price: 11000,
-      status: 'accepted',
-      appliedDate: '2024-01-05',
-      respondedDate: '2024-01-08',
-      coverLetter: 'I am impressed with your facility and the student-friendly atmosphere. Looking forward to joining.',
-      moveInDate: '2024-02-01',
-      duration: 12,
-      preferences: 'Flexible check-in time, good kitchen facilities'
-    },
-  ]);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [studentName, setStudentName] = useState("Devesh");
 
-  const studentName = "Rajesh Kumar";
+  // Fetch applications from database on component mount
+  useEffect(() => {
+  // Remove the if (!userId) check here because we use the Token
+  fetchApplications();
+  
+  if (userId) {
+    fetchUserProfile();
+  }
+}, [userId]);
+
+
+  const fetchApplications = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    // Get the token exactly how you do it in the Dashboard
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication token missing. Please log in again.');
+    }
+
+    const response = await fetch('http://localhost:8080/api/v1/application/student-applications', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // This is the missing piece that identifies the student!
+        'Authorization': token 
+      },
+    });
+
+    const data = await response.json();
+console.log("Raw Data from Backend:", data); // Check your browser console!
+    if (response.ok && data.success) {
+      if (data.applications.length === 0) {
+      console.warn("Backend returned success, but the applications array is empty.");
+   }
+      // Mapping the data to match your UI's expected fields
+      // Inside fetchApplications, update the mapping:
+const formattedApps = data.applications.map(app => {
+  // Broaden the status check to handle "approved" vs "accepted"
+  const rawStatus = app.status?.toLowerCase() || 'pending';
+  let displayStatus = 'pending';
+  
+  if (['accepted', 'approved'].includes(rawStatus)) displayStatus = 'accepted';
+  if (['rejected', 'declined'].includes(rawStatus)) displayStatus = 'rejected';
+
+  return {
+    id: app._id,
+    pgName: app.property?.title || "Unknown PG",
+    
+    // These will now work because of the backend .populate change!
+    location: app.property?.city || app.property?.address || "Location N/A",
+    price: app.property?.rent || app.property?.price || 0,
+    
+    status: displayStatus, 
+    appliedDate: app.createdAt,
+    moveInDate: app.moveInDate || app.createdAt,
+    duration: app.duration || 12,
+    preferences: app.preferences || "Standard",
+    coverLetter: app.message || "No message provided"
+  };
+});
+
+      setApplications(formattedApps);
+    } else {
+      throw new Error(data.message || 'Failed to fetch applications');
+    }
+  } catch (err) {
+    console.error('Error fetching applications:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const fetchUserProfile = async () => {
+  if (!userId) return; // Guard clause inside the function
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setStudentName(data.name || "User");
+    } else {
+      console.error("User not found or Server Error");
+    }
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+  }
+};
 
   const filteredApplications = applications.filter(app => 
     selectedFilter === 'all' ? true : app.status === selectedFilter
@@ -94,10 +127,23 @@ export default function MyApplicationsPage({ onBack }) {
     }
   };
 
-  const handleWithdraw = (id) => {
+  const handleWithdraw = async (id) => {
+  if (!window.confirm("Are you sure you want to withdraw this application?")) return;
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/applications/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) throw new Error('Failed to withdraw');
+
     setApplications(applications.filter(app => app.id !== id));
     setShowDetailModal(false);
-  };
+    alert('Application withdrawn successfully');
+  } catch (err) {
+    alert(err.message);
+  }
+};
 
   const handleViewDetails = (app) => {
     setSelectedApplication(app);
@@ -105,6 +151,7 @@ export default function MyApplicationsPage({ onBack }) {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
@@ -195,187 +242,173 @@ export default function MyApplicationsPage({ onBack }) {
           <p className="text-gray-600 mt-2">Track all your PG applications and their status</p>
         </div>
 
-        {/* Filter Section */}
-        <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200 mb-8">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Filter by Status</h3>
-          <div className="flex gap-3 flex-wrap">
-            <button 
-              onClick={() => setSelectedFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all border-2 ${
-                selectedFilter === 'all'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-              }`}
-            >
-              All Applications ({applications.length})
-            </button>
-            
-            <button 
-              onClick={() => setSelectedFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
-                selectedFilter === 'pending'
-                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-400'
-              }`}
-            >
-              <Clock size={16} />
-              Pending ({applications.filter(a => a.status === 'pending').length})
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter('accepted')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
-                selectedFilter === 'accepted'
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
-              }`}
-            >
-              <CheckCircle size={16} />
-              Accepted ({applications.filter(a => a.status === 'accepted').length})
-            </button>
-
-            <button 
-              onClick={() => setSelectedFilter('rejected')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
-                selectedFilter === 'rejected'
-                  ? 'bg-red-100 text-red-800 border-red-300'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-red-400'
-              }`}
-            >
-              <XCircle size={16} />
-              Rejected ({applications.filter(a => a.status === 'rejected').length})
-            </button>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 size={48} className="text-blue-600 animate-spin mb-4" />
+            <p className="text-gray-600">Loading your applications...</p>
           </div>
-        </div>
+        )}
 
-        {/* Applications List */}
-        <div className="space-y-4">
-          {filteredApplications.length > 0 ? (
-            filteredApplications.map(app => {
-              const statusColor = getStatusColor(app.status);
-              const StatusIcon = statusColor.icon;
-
-              return (
-                <div key={app.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                  
-                  {/* Application Card */}
-                  <div className="p-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                      
-                      {/* PG Info */}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{app.pgName}</h3>
-                          <div className={`px-3 py-1 rounded-full text-sm font-semibold border-2 flex items-center gap-1 ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
-                            <StatusIcon size={16} />
-                            {getStatusLabel(app.status)}
-                          </div>
-                        </div>
-                        
-                        <p className="text-gray-600 flex items-center gap-2 mb-2">
-                          <MapPin size={16} className="text-blue-600" />
-                          {app.location}
-                        </p>
-
-                        <p className="text-lg font-bold text-blue-600 mb-3">
-                          ₹{app.price.toLocaleString()} <span className="text-sm text-gray-600">/month</span>
-                        </p>
-                      </div>
-
-                      {/* Price Info */}
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-2">Applied on</p>
-                        <p className="text-gray-900 font-semibold">{formatDate(app.appliedDate)}</p>
-                      </div>
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar size={16} className="text-blue-600" />
-                          <span className="text-gray-700">Applied: <span className="font-semibold">{formatDate(app.appliedDate)}</span></span>
-                        </div>
-                        
-                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-
-                        {app.respondedDate ? (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar size={16} className={app.status === 'accepted' ? 'text-green-600' : app.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'} />
-                            <span className="text-gray-700">Responded: <span className="font-semibold">{formatDate(app.respondedDate)}</span></span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock size={16} className="text-yellow-600" />
-                            <span className="text-gray-700 italic">Awaiting response...</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Application Details Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <p className="text-xs text-gray-600 mb-1">Move-in Date</p>
-                        <p className="font-semibold text-gray-900">{formatDate(app.moveInDate)}</p>
-                      </div>
-                      
-                      <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                        <p className="text-xs text-gray-600 mb-1">Duration</p>
-                        <p className="font-semibold text-gray-900">{app.duration} months</p>
-                      </div>
-
-                      <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                        <p className="text-xs text-gray-600 mb-1">Preferences</p>
-                        <p className="font-semibold text-gray-900 text-sm truncate">{app.preferences}</p>
-                      </div>
-
-                      <div className="bg-gray-100 rounded-lg p-3 border border-gray-300">
-                        <p className="text-xs text-gray-600 mb-1">Status</p>
-                        <p className="font-semibold text-gray-900 capitalize">{app.status}</p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-4 border-t border-gray-200">
-                      <button 
-                        onClick={() => handleViewDetails(app)}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2"
-                      >
-                        <Eye size={18} />
-                        View Details
-                      </button>
-
-                      {app.status === 'pending' && (
-                        <button 
-                          onClick={() => handleWithdraw(app.id)}
-                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-semibold flex items-center gap-2"
-                        >
-                          <Trash2 size={18} />
-                          Withdraw
-                        </button>
-                      )}
-
-                      <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold flex items-center gap-2">
-                        <ChevronRight size={18} />
-                        Go to PG
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Applications Found</h3>
-              <p className="text-gray-600">You haven't sent any applications yet. Start exploring PGs near your college!</p>
-              <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                Search PGs
-              </button>
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900 mb-1">Error Loading Applications</h3>
+                <p className="text-red-700">{error}</p>
+                <button 
+                  onClick={fetchApplications}
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Content - Only show when not loading */}
+        {!loading && !error && (
+          <>
+            {/* Filter Section */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200 mb-8">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">Filter by Status</h3>
+              <div className="flex gap-3 flex-wrap">
+                <button 
+                  onClick={() => setSelectedFilter('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all border-2 ${
+                    selectedFilter === 'all'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  All Applications ({applications.length})
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedFilter('pending')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
+                    selectedFilter === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-400'
+                  }`}
+                >
+                  <Clock size={16} />
+                  Pending ({applications.filter(a => a.status === 'pending').length})
+                </button>
+
+                <button 
+                  onClick={() => setSelectedFilter('accepted')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
+                    selectedFilter === 'accepted'
+                      ? 'bg-green-100 text-green-800 border-green-300'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
+                  }`}
+                >
+                  <CheckCircle size={16} />
+                  Accepted ({applications.filter(a => a.status === 'accepted').length})
+                </button>
+
+                <button 
+                  onClick={() => setSelectedFilter('rejected')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all border-2 flex items-center gap-2 ${
+                    selectedFilter === 'rejected'
+                      ? 'bg-red-100 text-red-800 border-red-300'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-400'
+                  }`}
+                >
+                  <XCircle size={16} />
+                  Rejected ({applications.filter(a => a.status === 'rejected').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Applications List */}
+            <div className="space-y-4">
+              {filteredApplications.length > 0 ? (
+                filteredApplications.map(app => {
+                  const statusColor = getStatusColor(app.status);
+                  const StatusIcon = statusColor.icon;
+
+                  return (
+                    <div key={app.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                      
+                      {/* Application Card */}
+                      <div className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                          
+                          {/* PG Info */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="text-xl font-bold text-gray-900">{app.pgName}</h3>
+                              <div className={`px-3 py-1 rounded-full text-sm font-semibold border-2 flex items-center gap-1 ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
+                                <StatusIcon size={16} />
+                                {getStatusLabel(app.status)}
+                              </div>
+                            </div>
+                            
+                            <p className="text-gray-600 flex items-center gap-2 mb-2">
+  <MapPin size={16} className="text-blue-600" />
+  {app.location} {/* This matches the mapping above */}
+</p>
+
+                            <p className="text-lg font-bold text-blue-600 mb-3">
+  ₹{app.price?.toLocaleString()} <span className="text-sm text-gray-600">/month</span>
+</p>
+                          </div>
+
+                          {/* Price Info */}
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600 mb-2">Applied on</p>
+                            <p className="text-gray-900 font-semibold">{formatDate(app.appliedDate)}</p>
+                          </div>
+                        </div>
+
+                      
+
+                        
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-4 border-t border-gray-200">
+                          <button 
+                            onClick={() => handleViewDetails(app)}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2"
+                          >
+                            <Eye size={18} />
+                            View Details
+                          </button>
+
+                          {app.status === 'pending' && (
+                            <button 
+                              onClick={() => handleWithdraw(app.id)}
+                              className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-semibold flex items-center gap-2"
+                            >
+                              <Trash2 size={18} />
+                              Withdraw
+                            </button>
+                          )}
+
+                          
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 p-12 text-center">
+                  <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Applications Found</h3>
+                  <p className="text-gray-600">You haven't sent any applications yet. Start exploring PGs near your college!</p>
+                  <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                    Search PGs
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Details Modal */}

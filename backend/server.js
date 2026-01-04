@@ -1,13 +1,19 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const path = require("path");
-const connectDB = require("./config/db");
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import connectDB from "./config/db.js"; // Ensure .js extension
 
-// Routes
-const authRoutes = require("./Routes/authRoutes");
-const propertyRoutes = require("./Routes/propertyRoutes");
-const applicationRoutes = require("./Routes/applicationRoutes");
+// Routes Imports
+import authRoutes from "./Routes/authRoutes.js";
+import propertyRoutes from "./Routes/propertyRoutes.js";
+import applicationRoutes from "./Routes/applicationRoutes.js";
+import bookmarkRoutes from "./Routes/bookmarkRoutes.js"; // Added this
+
+// Fixing __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load env variables
 dotenv.config();
@@ -27,7 +33,6 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 /* =======================
    STATIC FILES
 ======================= */
-// Serve uploaded images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* =======================
@@ -36,6 +41,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/property", propertyRoutes);
 app.use("/api/v1/application", applicationRoutes);
+app.use("/api/v1/bookmarks", bookmarkRoutes); // Integrated here
 
 /* =======================
    ROOT TEST ROUTE
@@ -45,7 +51,7 @@ app.get("/", (req, res) => {
 });
 
 /* =======================
-   GLOBAL ERROR HANDLER (SAFE)
+   GLOBAL ERROR HANDLER
 ======================= */
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
@@ -59,7 +65,6 @@ app.use((err, req, res, next) => {
    START SERVER
 ======================= */
 const PORT = process.env.PORT || 8080;
-
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });

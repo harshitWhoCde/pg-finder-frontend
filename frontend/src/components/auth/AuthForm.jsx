@@ -42,12 +42,19 @@ const AuthForm = ({ role, onBack, onLoginSuccess }) => {
   // State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Login Logic
   const handleSubmit = async (e) => {
     e.preventDefault(); // Stop page reload
-    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    setEmailError('Invalid Email');
+    return; // Stop the function here
+  }
+  
+  setEmailError('');
     try {
       setLoading(true);
       
@@ -104,12 +111,20 @@ const AuthForm = ({ role, onBack, onLoginSuccess }) => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <InputField 
-                icon={Mail} 
-                type="email" 
-                placeholder="Email Address" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+  icon={Mail} 
+  type="email" 
+  placeholder="Email Address" 
+  value={email}
+  onChange={(e) => {
+    setEmail(e.target.value);
+    if (emailError) setEmailError(''); // Clear error when user starts typing again
+  }}
+/>
+{emailError && (
+  <p className="text-red-500 text-xs mt-1 ml-1 animate-pulse font-medium">
+    {emailError}
+  </p>
+)}
               <InputField 
                 icon={Lock} 
                 type="password" 

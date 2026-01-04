@@ -40,7 +40,7 @@ exports.getStudentApplications = async (req, res) => {
     try {
         // req.user._id comes from your requireSignIn middleware
         const applications = await Application.find({ student: req.user._id })
-            .populate("property", "title") // Needed to show PG name in notification
+            .populate("property", "title rent city") // Needed to show PG name in notification
             .sort({ updatedAt: -1 }); // Latest updates (Approved/Rejected) first
 
         res.status(200).json({

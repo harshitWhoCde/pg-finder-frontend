@@ -25,18 +25,62 @@ const EnhancedStudentDashboard = ({ user, onLogout, onViewDetails, onViewApplica
   const facilities = ['WiFi', 'Food', 'AC', 'Laundry', 'Parking', 'Security'];
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('savedPGs') || '[]');
-    setSavedPGs(saved);
-  }, []);
-
-  const toggleSavePG = (e, pgId) => {
-    e.stopPropagation();
-    const updatedSaved = savedPGs.includes(pgId)
-      ? savedPGs.filter(id => id !== pgId)
-      : [...savedPGs, pgId];
-    setSavedPGs(updatedSaved);
-    localStorage.setItem('savedPGs', JSON.stringify(updatedSaved));
+  const fetchSavedFromDB = async () => {
+    const authData = JSON.parse(localStorage.getItem('auth'));
+    if (authData?.token) {
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/bookmarks/get-bookmarks', {
+          headers: { 'Authorization': authData.token }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Sync the IDs to show the filled bookmark icons
+          const bookmarkIds = data.bookmarks.map(pg => pg._id);
+          setSavedPGs(bookmarkIds);
+        }
+      } catch (err) {
+        console.log("Error syncing bookmarks", err);
+      }
+    }
   };
+  fetchSavedFromDB();
+}, []);
+
+  const toggleSavePG = async (e, pgId) => {
+  e.stopPropagation();
+  
+  try {
+    // 1. Try to get the token directly (Check which one your app uses)
+    const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('auth'))?.token;
+
+    console.log("Token found:", token); // This will show in your console
+
+    if (!token) {
+      alert("Please login to save bookmarks");
+      return;
+    }
+
+    const res = await fetch(`http://localhost:8080/api/v1/bookmarks/toggle-bookmark/${pgId}`, {
+  method: 'POST', // Make sure this is POST
+      headers: {
+        'Authorization': token, // We pass the raw token here
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setSavedPGs(data.bookmarks); 
+      // Keep your local UI synced
+      localStorage.setItem('savedPGs', JSON.stringify(data.bookmarks));
+    } else {
+      console.error("Server error:", data.message);
+    }
+  } catch (error) {
+    console.error("Error toggling bookmark:", error);
+  }
+};
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -245,61 +289,106 @@ const EnhancedStudentDashboard = ({ user, onLogout, onViewDetails, onViewApplica
           </div>
         </div>
 
-        {/* Search Section (Simplified for brevity, logic remains same) */}
-        <div className="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-8">
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Search PGs Near Your College</h3>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Search by PG Name or City</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Try 'Standard PG' or 'Delhi'..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-12 py-3 border-2 border-blue-100 rounded-xl bg-white text-gray-900 focus:border-blue-500 outline-none"
-                />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-red-500">
-                    <X size={20} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Budget: ₹{searchFilters.budget[0]} - ₹{searchFilters.budget[1]}</label>
-                <input 
-                  type="range" min="5000" max="50000" step="1000"
-                  value={searchFilters.budget[1]}
-                  onChange={(e) => handleBudgetChange([searchFilters.budget[0], parseInt(e.target.value)])}
-                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Gender Preference</label>
-                <div className="flex gap-2">
-                  {['Any', 'Male', 'Female'].map(gender => (
-                    <button
-                      key={gender}
-                      onClick={() => setSearchFilters({ ...searchFilters, gender })}
-                      className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-                        searchFilters.gender === gender ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {gender}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Search Section */}
+<div className="bg-white rounded-xl shadow-md p-8 border border-gray-200 mb-8">
+  <div className="mb-8">
+    <h3 className="text-2xl font-bold text-gray-900 mb-4">Search PGs Near Your College</h3>
+    
+    {/* Search Input Section */}
+    <div className="mb-6">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">Search by PG Name or City</label>
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
         </div>
+        <input
+          type="text"
+          placeholder="Try 'Standard PG' or 'Delhi'..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-11 pr-12 py-3 border-2 border-blue-100 rounded-xl bg-white text-gray-900 focus:border-blue-500 outline-none transition-all"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-red-500">
+            <X size={20} />
+          </button>
+        )}
+      </div>
+    </div>
+
+    {/* Filters Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      {/* Budget Filter */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-3">
+          Budget: ₹{searchFilters.budget[0]} - ₹{searchFilters.budget[1]}
+        </label>
+        <input 
+          type="range" min="5000" max="50000" step="1000"
+          value={searchFilters.budget[1]}
+          onChange={(e) => handleBudgetChange([searchFilters.budget[0], parseInt(e.target.value)])}
+          className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        />
+      </div>
+
+      {/* Gender Preference */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-3">Gender Preference</label>
+        <div className="flex gap-2">
+          {['Any', 'Male', 'Female'].map(gender => (
+            <button
+              key={gender}
+              onClick={() => setSearchFilters({ ...searchFilters, gender })}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                searchFilters.gender === gender ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {gender}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Room Type */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-3">Room Type</label>
+        <div className="flex gap-2">
+          {['Any', 'Single', 'Shared'].map(roomtype => (
+            <button
+              key={roomtype}
+              onClick={() => setSearchFilters({ ...searchFilters, roomtype })}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
+                searchFilters.roomtype === roomtype ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {roomtype}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Facilities Filter */}
+    <div className="mb-2">
+      <label className="block text-sm font-semibold text-gray-700 mb-3">Preferred Facilities</label>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+        {facilities.map(facility => (
+          <button
+            key={facility}
+            onClick={() => toggleFacility(facility)}
+            className={`py-2 px-3 rounded-lg font-medium transition-all border-2 text-sm ${
+              searchFilters.facilities.includes(facility)
+                ? 'bg-blue-100 border-blue-600 text-blue-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
+            }`}
+          >
+            {facility}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* PGs Grid */}
         <div>
@@ -332,9 +421,7 @@ const EnhancedStudentDashboard = ({ user, onLogout, onViewDetails, onViewApplica
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-1">
                       <h4 className="font-semibold text-gray-900 line-clamp-1">{pg.title}</h4>
-                      <div className="flex items-center gap-1 text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                        <Star className="w-3 h-3 fill-current" /> 4.8
-                      </div>
+                      
                     </div>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mt-1 mb-3">
                       <MapPin size={14} /> {pg.city} • {pg.distanceToCollege}km
